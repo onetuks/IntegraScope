@@ -2,417 +2,422 @@
   "master": {
     "tasks": [
       {
-        "id": 1,
+        "id": "1",
         "title": "Initialize project structure and development environment",
         "description": "Set up the foundational project structure with Python 3.11+, create directory layout, initialize Git repository, and configure virtual environment.",
         "details": "Create project root with subdirectories: /api (FastAPI), /ui (Streamlit), /services (business logic), /models (data models), /utils (helpers), /tests. Initialize pyproject.toml or requirements.txt with base dependencies: fastapi, uvicorn, streamlit, langchain, langgraph, chromadb, google-generativeai (Gemini SDK), requests, pydantic, python-dotenv. Set up .gitignore for Python projects. Create .env.example template for environment variables (SAP_IS_API_BASE_URL, SAP_IS_API_KEY, GEMINI_API_KEY, CHROMA_PERSIST_DIR).",
         "testStrategy": "Verify project structure exists, virtual environment activates successfully, and all base dependencies install without conflicts. Run 'python --version' to confirm Python 3.11+.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-12-13T09:54:34.137Z"
       },
       {
-        "id": 2,
+        "id": "2",
         "title": "Define core data models and schemas",
         "description": "Create Pydantic models for normalized logs (Toon), error analysis results, and Case entities to ensure type safety and validation across the system.",
         "details": "In /models/schemas.py, define:\n- ToonLog: message_id, timestamp, iflow_id, error_message, error_code, adapter_type, communication_type, status\n- ErrorAnalysis: error_type, root_causes (list), solution_steps (list), confidence_level, evidence (list), assumptions (list)\n- Case: id, toon_log (ToonLog), analysis (ErrorAnalysis), metadata (dict with tags, adapter, iflow), embedding (optional list of floats), created_at\n- APIResponse wrappers for consistent API responses\nUse Pydantic BaseModel with Field validators for required fields and data types.",
         "testStrategy": "Write unit tests to validate model instantiation, field validation, JSON serialization/deserialization, and handling of invalid data inputs.",
         "priority": "high",
         "dependencies": [
-          1
+          "1"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 3,
+        "id": "3",
         "title": "Implement environment configuration management",
         "description": "Create a centralized configuration module to load and validate environment variables for SAP IS APIs, Gemini API, and ChromaDB settings.",
         "details": "In /utils/config.py, use pydantic-settings or python-dotenv to load:\n- SAP_IS_API_BASE_URL (required)\n- SAP_IS_API_KEY (required)\n- SAP_IS_TEST_API_URL (optional for Phase 3)\n- GEMINI_API_KEY (required)\n- GEMINI_MODEL (default: 'gemini-1.5-pro')\n- CHROMA_PERSIST_DIR (default: './chroma_db')\n- LOG_LEVEL (default: 'INFO')\nImplement a Config class with validation that raises clear errors for missing required variables. Provide a get_config() singleton function.",
         "testStrategy": "Test with valid .env file, missing required variables (should raise exception), and default value fallbacks. Mock environment variables in tests.",
         "priority": "high",
         "dependencies": [
-          1
+          "1"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 4,
+        "id": "4",
         "title": "Implement SAP IS Message Processing Log OData API client",
         "description": "Create a client module to fetch FAILED message processing logs from SAP Integration Suite using OData API with filtering by time range and optional iFlow ID.",
         "details": "In /services/sap_is_client.py, implement SAPISClient class:\n- __init__(base_url, api_key) using config\n- fetch_failed_logs(start_time, end_time, iflow_id=None) method\n- Build OData query with $filter for Status eq 'FAILED' and LogStart/LogEnd time range\n- Use requests library with proper authentication headers (Basic or OAuth based on SAP IS setup)\n- Handle pagination if results exceed single page\n- Return raw JSON response\n- Implement retry logic with exponential backoff for transient failures\n- Log all API calls for debugging",
         "testStrategy": "Mock SAP IS API responses using requests-mock. Test successful fetch, pagination handling, filtering by iflow_id, API errors (401, 500), network timeouts, and retry logic.",
         "priority": "high",
         "dependencies": [
-          2,
-          3
+          "2",
+          "3"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 5,
+        "id": "5",
         "title": "Implement log normalization (Toon) service",
         "description": "Create a service to extract and normalize relevant fields from raw SAP IS OData responses, mask sensitive data, and output standardized ToonLog objects.",
         "details": "In /services/toon_service.py, implement ToonService class:\n- normalize_logs(raw_odata_response) -> List[ToonLog]\n- Extract fields: MessageGuid (message_id), LogStart (timestamp), IntegrationFlowName (iflow_id), Status, AdapterMessageId, AdapterType, CustomStatus, Error text from nested structures\n- Implement sensitive data masking: email addresses, phone numbers, API keys in error messages using regex patterns\n- Handle missing or null fields gracefully with defaults\n- Validate extracted data against ToonLog schema\n- Log normalization statistics (total processed, skipped, errors)",
         "testStrategy": "Test with sample SAP IS OData responses (valid, missing fields, nested errors). Verify sensitive data masking with test strings containing emails/keys. Validate output conforms to ToonLog schema.",
         "priority": "high",
         "dependencies": [
-          2,
-          4
+          "2",
+          "4"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 6,
+        "id": "6",
         "title": "Design and implement LLM prompt templates for error analysis",
         "description": "Create versioned, structured prompt templates for Gemini LLM to analyze normalized logs and generate consistent error analysis with root causes and solutions.",
         "details": "In /services/prompts.py, define prompt templates using LangChain PromptTemplate:\n- ERROR_ANALYSIS_PROMPT_V1: Include instructions to analyze ToonLog JSON, identify error type (connectivity, mapping, timeout, authentication, business logic, etc.), list root causes with evidence from log, propose concrete solution steps, assign confidence level (high/medium/low), clearly separate evidence-based conclusions from assumptions\n- Output format: strict JSON schema matching ErrorAnalysis model\n- Include few-shot examples for common SAP IS errors (SFTP connection failed, SOAP fault, timeout)\n- Version prompts (v1, v2) for A/B testing and rollback\n- Store prompt metadata (version, created_at, description)",
         "testStrategy": "Manually test prompts with sample ToonLog data against Gemini API. Verify output parses to ErrorAnalysis schema. Review for hallucination by checking if conclusions reference actual log content.",
         "priority": "high",
         "dependencies": [
-          2
+          "2"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 7,
+        "id": "7",
         "title": "Implement Gemini LLM integration service",
         "description": "Create a service to interact with Google Gemini API for error analysis, handling API calls, response parsing, and error handling.",
         "details": "In /services/gemini_service.py, implement GeminiService class:\n- __init__(api_key, model_name) from config\n- analyze_error(toon_log: ToonLog, prompt_version='v1') -> ErrorAnalysis\n- Use google.generativeai SDK (import google.generativeai as genai)\n- Configure genai.configure(api_key=api_key)\n- Use genai.GenerativeModel(model_name) with generation_config for JSON output\n- Format prompt with ToonLog data\n- Parse JSON response to ErrorAnalysis model\n- Implement retry logic for rate limits (429) and transient errors\n- Log token usage and latency\n- Handle malformed JSON responses with fallback parsing",
         "testStrategy": "Mock Gemini API responses. Test successful analysis, JSON parsing, rate limit handling, malformed responses, and API errors. Verify ErrorAnalysis output validity.",
         "priority": "high",
         "dependencies": [
-          3,
-          6
+          "3",
+          "6"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 8,
+        "id": "8",
         "title": "Set up ChromaDB vector database",
         "description": "Initialize and configure ChromaDB for persistent storage of error cases with vector embeddings for similarity search.",
         "details": "In /services/vector_db.py, implement VectorDBService class:\n- __init__(persist_directory) from config\n- Use chromadb.PersistentClient(path=persist_directory)\n- Create or get collection 'error_cases' with metadata for filtering\n- Configure embedding function (use default or specify sentence-transformers model like 'all-MiniLM-L6-v2')\n- Implement connection health check\n- Set up collection schema with metadata fields: iflow_id, adapter_type, error_type, created_at\n- Enable hybrid search by configuring both dense embeddings and sparse keyword indexing if supported",
         "testStrategy": "Test database initialization, collection creation, persistence across restarts. Verify embedding function works. Test with sample documents to ensure storage and retrieval.",
         "priority": "medium",
         "dependencies": [
-          3
+          "3"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 9,
+        "id": "9",
         "title": "Implement case storage in vector database",
         "description": "Create functionality to store analyzed error cases with embeddings in ChromaDB for future similarity search and knowledge reuse.",
         "details": "In /services/vector_db.py, extend VectorDBService:\n- store_case(case: Case) method\n- Generate document text from case: combine error_message, error_type, root_causes, solution_steps\n- Create metadata dict: iflow_id, adapter_type, error_type, error_code, timestamp\n- Use collection.add() with documents=[text], metadatas=[metadata], ids=[case.id]\n- ChromaDB will auto-generate embeddings using configured function\n- Handle duplicate IDs (update vs insert logic)\n- Return success status and stored case ID",
         "testStrategy": "Test storing single case, multiple cases, duplicate IDs. Verify embeddings are generated. Query database directly to confirm storage. Test with various Case objects.",
         "priority": "medium",
         "dependencies": [
-          2,
-          8
+          "2",
+          "8"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 10,
+        "id": "10",
         "title": "Implement similar case search with hybrid retrieval",
         "description": "Create similarity search functionality to find historical cases similar to a new error using hybrid dense and sparse matching.",
         "details": "In /services/vector_db.py, extend VectorDBService:\n- search_similar_cases(toon_log: ToonLog, top_k=5, similarity_threshold=0.7) -> List[Case]\n- Build query text from toon_log: error_message + error_code + adapter_type\n- Use collection.query() with query_texts=[query_text], n_results=top_k\n- Apply metadata filters: where={'iflow_id': toon_log.iflow_id} (optional)\n- Implement hybrid search: combine dense embedding similarity with keyword matching on error_code and adapter_type\n- Filter results by similarity_threshold (distance < threshold)\n- Parse results back to Case objects\n- Return sorted by similarity score (descending)",
         "testStrategy": "Populate database with test cases. Query with similar and dissimilar logs. Verify top_k limiting, threshold filtering, and metadata filtering. Test edge cases (empty database, no matches).",
         "priority": "medium",
         "dependencies": [
-          9
+          "9"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 11,
+        "id": "11",
         "title": "Implement LangGraph orchestration workflow for error analysis",
         "description": "Create a LangGraph-based workflow to orchestrate the complete error analysis pipeline: similarity search, AI analysis decision, and result generation.",
         "details": "In /services/analysis_workflow.py, implement using LangGraph:\n- Define StateGraph with state: toon_log, similar_cases, analysis_result, confidence\n- Node 1 (search_similar): Call vector_db.search_similar_cases()\n- Node 2 (decide): If similar_cases with high similarity (>0.85), reuse solution; else proceed to AI analysis\n- Node 3 (ai_analyze): Call gemini_service.analyze_error()\n- Node 4 (store_result): Store new case in vector DB if new analysis was generated\n- Define edges with conditional routing based on similarity scores\n- Compile graph and expose run_analysis(toon_log: ToonLog) -> ErrorAnalysis method\n- Add logging at each node for observability",
         "testStrategy": "Test workflow with: (1) new error (no similar cases), (2) error with high similarity match, (3) error with low similarity match. Verify correct path execution, state transitions, and final output.",
         "priority": "high",
         "dependencies": [
-          7,
-          10
+          "7",
+          "10"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 12,
+        "id": "12",
         "title": "Create FastAPI application structure and base endpoints",
         "description": "Set up FastAPI application with base configuration, CORS, logging, and health check endpoints.",
         "details": "In /api/main.py, create FastAPI app:\n- app = FastAPI(title='SAP IS Error Analysis API', version='1.0.0')\n- Configure CORS middleware for Streamlit frontend\n- Set up structured logging with uvicorn\n- Add startup/shutdown event handlers for resource initialization\n- Implement GET /health endpoint returning status and version\n- Implement GET /api/v1/info endpoint with API metadata\n- Configure exception handlers for consistent error responses\n- Set up request ID middleware for tracing",
         "testStrategy": "Start server with 'uvicorn api.main:app --reload'. Test /health and /api/v1/info endpoints. Verify CORS headers. Test with invalid routes (404 handling).",
         "priority": "high",
         "dependencies": [
-          1,
-          3
+          "1",
+          "3"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 13,
+        "id": "13",
         "title": "Implement API endpoint for fetching FAILED logs",
         "description": "Create FastAPI endpoint to retrieve and normalize FAILED message processing logs from SAP IS based on time range and optional filters.",
         "details": "In /api/routes/logs.py, implement:\n- POST /api/v1/logs/fetch endpoint\n- Request body: start_time (ISO datetime), end_time (ISO datetime), iflow_id (optional)\n- Validate datetime formats and range (end > start, not future)\n- Call sap_is_client.fetch_failed_logs()\n- Call toon_service.normalize_logs()\n- Return List[ToonLog] with pagination metadata\n- Implement query parameter for page_size (default 50, max 200)\n- Add response caching for repeated queries (5 min TTL)\n- Handle SAP IS API errors with appropriate HTTP status codes",
         "testStrategy": "Test with valid time ranges, invalid dates, missing required fields, iflow_id filtering. Mock SAP IS client. Verify pagination, caching, and error responses (400, 500, 503).",
         "priority": "high",
         "dependencies": [
-          4,
-          5,
-          12
+          "4",
+          "5",
+          "12"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 14,
+        "id": "14",
         "title": "Implement API endpoint for error analysis",
         "description": "Create FastAPI endpoint to trigger error analysis for a specific log entry, orchestrating similarity search and AI analysis.",
         "details": "In /api/routes/analysis.py, implement:\n- POST /api/v1/analysis/analyze endpoint\n- Request body: ToonLog object or message_id reference\n- Call analysis_workflow.run_analysis(toon_log)\n- Return ErrorAnalysis with metadata (analysis_id, timestamp, similar_cases_found count)\n- Implement async processing for long-running analyses\n- Add optional query parameter force_new_analysis (skip similarity search)\n- Store analysis result in vector DB\n- Return 202 Accepted for async processing with job_id, or 200 OK for sync\n- Implement rate limiting (max 10 requests/minute per user)",
         "testStrategy": "Test with valid ToonLog, invalid data, force_new_analysis flag. Verify async processing, rate limiting. Mock workflow execution. Test concurrent requests.",
         "priority": "high",
         "dependencies": [
-          11,
-          12
+          "11",
+          "12"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 15,
+        "id": "15",
         "title": "Implement API endpoint for similar case search",
         "description": "Create FastAPI endpoint to search for historical similar error cases based on query parameters or log data.",
         "details": "In /api/routes/cases.py, implement:\n- POST /api/v1/cases/search endpoint\n- Request body: query (ToonLog or free text), top_k (default 5), similarity_threshold (default 0.7), filters (iflow_id, adapter_type, date_range)\n- Call vector_db.search_similar_cases()\n- Return List[Case] with similarity scores\n- Include metadata: total_matches, search_time_ms\n- Support both structured (ToonLog) and unstructured (text) queries\n- Implement result ranking by similarity + recency (weighted)\n- Add response caching",
         "testStrategy": "Test with ToonLog input, text query, various filters, top_k values, threshold values. Verify ranking, filtering, and caching. Test with empty database.",
         "priority": "medium",
         "dependencies": [
-          10,
-          12
+          "10",
+          "12"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 16,
+        "id": "16",
         "title": "Implement API endpoint for case management",
         "description": "Create CRUD endpoints for managing stored error cases: retrieve, list, update, and delete cases.",
         "details": "In /api/routes/cases.py, implement:\n- GET /api/v1/cases/{case_id} - retrieve single case\n- GET /api/v1/cases - list cases with pagination, filtering (iflow_id, error_type, date_range), sorting\n- PUT /api/v1/cases/{case_id} - update case metadata or analysis\n- DELETE /api/v1/cases/{case_id} - soft delete case (mark as archived)\n- Implement query parameters: page, page_size, sort_by, order\n- Add response models with proper serialization\n- Implement authorization checks (future: user-based access)\n- Return 404 for non-existent cases",
         "testStrategy": "Test CRUD operations, pagination, filtering, sorting. Verify 404 handling, validation errors. Test edge cases (page beyond results, invalid case_id).",
         "priority": "medium",
         "dependencies": [
-          9,
-          12
+          "9",
+          "12"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 17,
+        "id": "17",
         "title": "Create Streamlit application structure and navigation",
         "description": "Set up Streamlit application with multi-page navigation, session state management, and base UI components.",
         "details": "In /ui/app.py, create Streamlit app:\n- Configure page: st.set_page_config(page_title='SAP IS Error Analysis', layout='wide')\n- Set up session state for: api_base_url, selected_log, analysis_result, search_results\n- Create sidebar navigation with pages: 'Log Browser', 'Error Analysis', 'Case Search', 'Test Automation' (disabled initially)\n- Implement page routing using st.sidebar.radio() or pages/ directory structure\n- Add header with app title and description\n- Create /ui/utils/api_client.py for API calls to FastAPI backend\n- Implement error handling and user feedback (st.error, st.success, st.warning)",
         "testStrategy": "Run 'streamlit run ui/app.py'. Verify navigation works, session state persists across interactions, and all pages load without errors.",
         "priority": "high",
         "dependencies": [
-          1
+          "1"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 18,
+        "id": "18",
         "title": "Implement Streamlit log browser page",
         "description": "Create UI page for browsing and filtering FAILED message processing logs with time range selection and iFlow filtering.",
         "details": "In /ui/pages/log_browser.py, implement:\n- Date/time range picker using st.date_input() and st.time_input()\n- Optional iFlow ID text input with autocomplete (if available)\n- 'Fetch Logs' button triggering API call to /api/v1/logs/fetch\n- Display results in st.dataframe() with columns: timestamp, iflow_id, error_message (truncated), adapter_type, status\n- Implement row selection for detailed view\n- Show log details in expandable section with full error message\n- Add 'Analyze This Error' button for selected log\n- Implement loading states with st.spinner()\n- Add export functionality (CSV download)",
         "testStrategy": "Test date range selection, fetching logs, displaying results, row selection, error handling (no results, API errors). Verify UI responsiveness and data formatting.",
         "priority": "high",
         "dependencies": [
-          13,
-          17
+          "13",
+          "17"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 19,
+        "id": "19",
         "title": "Implement Streamlit error analysis page",
         "description": "Create UI page for displaying error analysis results with structured presentation of root causes, solutions, and confidence levels.",
         "details": "In /ui/pages/error_analysis.py, implement:\n- Display selected ToonLog summary at top (iflow_id, timestamp, error_message)\n- 'Run Analysis' button triggering API call to /api/v1/analysis/analyze\n- Show analysis progress with st.spinner() or st.progress()\n- Display ErrorAnalysis results in structured format:\n  - Error Type badge with color coding\n  - Root Causes as numbered list with evidence in expandable sections\n  - Solution Steps as actionable checklist\n  - Confidence Level with visual indicator (high=green, medium=yellow, low=red)\n  - Assumptions section clearly labeled\n- Show similar cases found (count and links)\n- Add 'View Similar Cases' button\n- Implement markdown rendering for formatted text\n- Add feedback mechanism (thumbs up/down for analysis quality)",
         "testStrategy": "Test with various analysis results, different confidence levels, with/without similar cases. Verify markdown rendering, expandable sections, and feedback submission.",
         "priority": "high",
         "dependencies": [
-          14,
-          17
+          "14",
+          "17"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 20,
+        "id": "20",
         "title": "Implement Streamlit case search page",
         "description": "Create UI page for searching historical error cases with filters and displaying search results with similarity scores.",
         "details": "In /ui/pages/case_search.py, implement:\n- Search input: text area for free-text query or structured filters (iflow_id, adapter_type, error_type)\n- Advanced filters in st.expander(): date range, similarity threshold, top_k slider\n- 'Search' button triggering API call to /api/v1/cases/search\n- Display results as cards with: similarity score (progress bar), error type, timestamp, iflow_id\n- Click on card to expand full case details (root causes, solutions)\n- Implement sorting: by similarity, by date\n- Add 'Apply This Solution' button to copy solution steps\n- Show 'No results found' message with suggestions\n- Implement result pagination",
         "testStrategy": "Test text search, filter combinations, threshold adjustment, sorting, pagination. Verify similarity score display, card expansion, and empty results handling.",
         "priority": "medium",
         "dependencies": [
-          15,
-          17
+          "15",
+          "17"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 21,
+        "id": "21",
         "title": "Implement SAP IS Test API client",
         "description": "Create a client module to execute tests and retrieve test results from SAP Integration Suite Test API.",
         "details": "In /services/sap_is_test_client.py, implement SAPISTestClient class:\n- __init__(base_url, api_key) from config\n- execute_test(test_id, parameters=None) method to trigger test execution\n- get_test_result(execution_id) method to retrieve test results\n- list_tests(iflow_id=None) method to get available tests\n- Use requests library with authentication\n- Handle async test execution (poll for completion or webhook)\n- Parse test results: status (PASSED/FAILED), execution_time, error_details\n- Implement timeout handling for long-running tests\n- Return structured TestResult objects",
         "testStrategy": "Mock SAP IS Test API responses. Test execute_test, get_test_result, list_tests. Verify polling logic, timeout handling, and result parsing. Test with PASSED and FAILED scenarios.",
         "priority": "low",
         "dependencies": [
-          3
+          "3"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 22,
+        "id": "22",
         "title": "Define test execution data models",
         "description": "Create Pydantic models for test execution requests, results, and test metadata to support test automation features.",
         "details": "In /models/schemas.py, add:\n- TestMetadata: test_id, test_name, iflow_id, description, parameters_schema\n- TestExecutionRequest: test_id, parameters (dict), execution_mode (sync/async)\n- TestResult: execution_id, test_id, status (PASSED/FAILED/RUNNING), started_at, completed_at, duration_ms, error_details (optional), logs (optional)\n- TestExecutionResponse: execution_id, status, result (TestResult when complete)\nEnsure proper validation and serialization for API integration.",
         "testStrategy": "Test model instantiation, validation, JSON serialization. Verify handling of optional fields and various status values.",
         "priority": "low",
         "dependencies": [
-          2
+          "2"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 23,
+        "id": "23",
         "title": "Implement API endpoints for test execution",
         "description": "Create FastAPI endpoints to list available tests, execute tests, and retrieve test results.",
         "details": "In /api/routes/tests.py, implement:\n- GET /api/v1/tests - list available tests with optional iflow_id filter\n- POST /api/v1/tests/execute - execute a test with TestExecutionRequest body\n- GET /api/v1/tests/executions/{execution_id} - get test result\n- GET /api/v1/tests/executions - list recent test executions with pagination\n- Implement async execution: return 202 Accepted with execution_id immediately\n- Add polling endpoint or WebSocket for real-time status updates\n- Link FAILED test results to analysis workflow (auto-trigger analysis)\n- Implement execution history storage",
         "testStrategy": "Test listing tests, executing tests (sync/async), retrieving results, polling. Mock test client. Verify auto-analysis trigger for FAILED tests. Test concurrent executions.",
         "priority": "low",
         "dependencies": [
-          21,
-          22,
-          12
+          "21",
+          "22",
+          "12"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 24,
+        "id": "24",
         "title": "Implement Streamlit test automation page",
         "description": "Create UI page for executing SAP IS tests, viewing results, and linking failed tests to error analysis.",
         "details": "In /ui/pages/test_automation.py, implement:\n- Test selection dropdown populated from /api/v1/tests\n- Parameter input form (dynamic based on test parameters_schema)\n- 'Execute Test' button triggering API call\n- Real-time execution status display with progress indicator\n- Test result display: status badge, duration, timestamp\n- For FAILED tests: show error details and 'Analyze Error' button\n- Test execution history table with filters (status, date range)\n- Click on history row to view details\n- Implement auto-refresh for running tests\n- Add bulk test execution (select multiple tests)",
         "testStrategy": "Test test selection, parameter input, execution, status updates, result display. Verify FAILED test linking to analysis. Test with running, passed, and failed scenarios.",
         "priority": "low",
         "dependencies": [
-          23,
-          17
+          "23",
+          "17"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 25,
+        "id": "25",
         "title": "Implement logging and monitoring infrastructure",
         "description": "Set up comprehensive logging, error tracking, and performance monitoring across all system components.",
         "details": "In /utils/logging.py, implement:\n- Configure structured logging with JSON format for production\n- Set up log levels per module (configurable via environment)\n- Implement request/response logging middleware for FastAPI\n- Add correlation IDs for request tracing across services\n- Log key metrics: API latency, LLM token usage, vector search time, cache hit rates\n- Implement error tracking with stack traces\n- Add performance profiling decorators for critical functions\n- Configure log rotation and retention\n- Optional: integrate with external monitoring (e.g., Prometheus, Grafana)",
         "testStrategy": "Verify logs are generated for API requests, errors, and key operations. Check log format, correlation IDs, and metric logging. Test log rotation and level filtering.",
         "priority": "medium",
         "dependencies": [
-          12
+          "12"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 26,
+        "id": "26",
         "title": "Implement caching layer for API responses",
         "description": "Add caching mechanism to reduce redundant API calls to SAP IS and LLM, improving performance and reducing costs.",
         "details": "In /utils/cache.py, implement caching using:\n- In-memory cache with TTL (e.g., cachetools or functools.lru_cache)\n- Cache keys based on request parameters (hash of inputs)\n- Cache SAP IS log fetch results (5-10 min TTL)\n- Cache similar case search results (15 min TTL)\n- Cache LLM analysis results (persistent, invalidate on manual update)\n- Implement cache invalidation strategies\n- Add cache statistics endpoint for monitoring\n- Configure cache size limits\n- Optional: use Redis for distributed caching in production",
         "testStrategy": "Test cache hit/miss scenarios, TTL expiration, cache invalidation. Verify performance improvement with cached responses. Test cache size limits and eviction.",
         "priority": "medium",
         "dependencies": [
-          12
+          "12"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 27,
+        "id": "27",
         "title": "Implement data masking and security utilities",
         "description": "Create utilities for masking sensitive data in logs and implementing security best practices across the system.",
         "details": "In /utils/security.py, implement:\n- mask_sensitive_data(text) function using regex patterns for:\n  - Email addresses → e***@domain.com\n  - Phone numbers → +**-***-**-1234\n  - API keys/tokens → ***key (show last 3 chars)\n  - Credit card numbers, SSNs, etc.\n- validate_api_key() for API authentication\n- Implement rate limiting decorator\n- Add input sanitization for user inputs (prevent injection)\n- Implement CORS configuration helper\n- Add security headers middleware (HSTS, CSP, X-Frame-Options)\n- Create audit logging for sensitive operations",
         "testStrategy": "Test masking with various sensitive data patterns. Verify API key validation, rate limiting. Test input sanitization with malicious inputs. Check security headers in responses.",
         "priority": "high",
         "dependencies": [
-          1
+          "1"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 28,
+        "id": "28",
         "title": "Create Docker containerization setup",
         "description": "Create Dockerfile and docker-compose configuration for containerized deployment of the entire system.",
         "details": "Create:\n- Dockerfile.api for FastAPI backend (multi-stage build, Python 3.11 slim base)\n- Dockerfile.ui for Streamlit frontend\n- docker-compose.yml with services: api, ui, chromadb (if using server mode)\n- Configure environment variables via .env file\n- Set up volume mounts for ChromaDB persistence\n- Configure networking between services\n- Add health checks for each service\n- Create .dockerignore file\n- Document port mappings (API: 8000, UI: 8501)\n- Add docker-compose.dev.yml for development with hot reload",
         "testStrategy": "Build images successfully. Run docker-compose up and verify all services start. Test inter-service communication. Verify data persistence across container restarts. Test with .env configuration.",
         "priority": "medium",
         "dependencies": [
-          12,
-          17
+          "12",
+          "17"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 29,
+        "id": "29",
         "title": "Implement comprehensive error handling and user feedback",
         "description": "Standardize error handling across API and UI with user-friendly messages and proper HTTP status codes.",
         "details": "In /utils/errors.py, implement:\n- Custom exception classes: SAPISAPIError, LLMError, VectorDBError, ValidationError\n- Exception handlers for FastAPI returning consistent error responses\n- Error response schema: {error_code, message, details, timestamp, request_id}\n- Map exceptions to appropriate HTTP status codes\n- In Streamlit, implement error display helpers:\n  - show_error(message, details) with expandable details\n  - show_warning(), show_success()\n- Add user-friendly error messages (avoid technical jargon)\n- Implement retry suggestions for transient errors\n- Log all errors with full context",
         "testStrategy": "Trigger various error scenarios (API errors, validation errors, LLM failures). Verify correct status codes, error messages, and UI display. Test error logging.",
         "priority": "medium",
         "dependencies": [
-          12,
-          17
+          "12",
+          "17"
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 30,
+        "id": "30",
         "title": "Create comprehensive documentation and deployment guide",
         "description": "Write user documentation, API documentation, deployment guide, and developer setup instructions.",
         "details": "Create documentation:\n- README.md: project overview, features, quick start\n- SETUP.md: detailed setup instructions, prerequisites, environment configuration\n- API_DOCS.md: API endpoint documentation (or use FastAPI auto-docs)\n- USER_GUIDE.md: UI walkthrough, common workflows, troubleshooting\n- DEPLOYMENT.md: Docker deployment, production considerations, scaling\n- ARCHITECTURE.md: system architecture, component interactions, data flow\n- CONTRIBUTING.md: development guidelines, code style, testing\n- Add inline code documentation (docstrings)\n- Create example .env file with all required variables\n- Document SAP IS API setup requirements\n- Add troubleshooting section for common issues",
         "testStrategy": "Follow documentation to set up project from scratch on clean environment. Verify all steps work. Review with potential users for clarity. Check API docs accuracy.",
         "priority": "medium",
         "dependencies": [
-          28
+          "28"
         ],
         "status": "pending",
         "subtasks": []
       }
     ],
     "metadata": {
-      "created": "2025-12-13T09:02:02.371Z",
-      "updated": "2025-12-13T09:02:02.371Z",
-      "description": "Tasks for master context"
+      "version": "1.0.0",
+      "lastModified": "2025-12-13T09:54:34.137Z",
+      "taskCount": 30,
+      "completedCount": 1,
+      "tags": [
+        "master"
+      ]
     }
   }
 }
