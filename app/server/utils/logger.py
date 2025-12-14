@@ -2,6 +2,11 @@ import logging
 
 from app.server.utils.config import get_config
 
-logger = logging.getLogger(__name__)
+LOG_LEVEL = get_config().log_level.upper()
 
-logger.setLevel(get_config().log_level)
+def setup_logging() -> logging.Logger:
+  """Configure structured logging for the API process."""
+  return logging.getLogger("api")
+
+
+logger = setup_logging()

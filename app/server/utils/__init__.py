@@ -1,1 +1,3 @@
-__all__ = ["logger"]
+__all__ = ["logger", "FieldValidationInfo"]
+
+from pydantic_core.core_schema import FieldValidationInfo
