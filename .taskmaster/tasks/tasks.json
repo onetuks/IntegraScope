@@ -162,8 +162,9 @@
           "1",
           "3"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2025-12-14T02:50:52.131Z"
       },
       {
         "id": "13",
@@ -232,7 +233,7 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -368,8 +369,9 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "review",
+        "subtasks": [],
+        "updatedAt": "2025-12-14T02:41:41.661Z"
       },
       {
         "id": "28",
@@ -415,9 +417,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-12-14T02:25:16.186Z",
+      "lastModified": "2025-12-14T02:50:52.132Z",
       "taskCount": 30,
-      "completedCount": 3,
+      "completedCount": 5,
       "tags": [
         "master"
       ]
