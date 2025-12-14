@@ -1,8 +1,8 @@
-from app.server.models.schemas import ApiResponse, MplLog, MplResultSet, \
+from app.server.models.schemas import ProblemAnalysisResponse, MplLog, MplResultSet, \
   MplResponse, parse_sap_datetime
 
 __all__ = [
-  "ApiResponse",
+  "ProblemAnalysisResponse",
   "MplLog",
   "MplResultSet",
   "MplResponse",
