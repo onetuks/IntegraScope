@@ -1,9 +1,6 @@
 # Python 3.11 runtime
-chromadb ~= 0.5.3
-fastapi ~= 0.104.1
-langchain ~= 0.2.11
-langgraph ~= 0.1.17
+fastapi ~= 0.109.1
+pydantic ~= 2.12.5
 pydantic-settings ~= 2.5.2
-python-dotenv ~= 1.0.1
 streamlit ~= 1.50.0
-uvicorn ~= 0.24.0
+requests~=2.32.5
