@@ -2,26 +2,7 @@
 SAP Cloud Integration 메시지 처리 로그 응답을 다루기 위한 Pydantic 스키마.
 
 OData 형태 응답 예시:
-{
-  "d": {
-    "results": [
-      {
-        "__metadata": {...},
-        "MessageGuid": "af1c...",
-        "CorrelationId": "corr-123",
-        "ApplicationMessageId": "APP-1",
-        "ApplicationMessageType": "INVOICE",
-        "IntegrationArtifact": "DemoIFlow",
-        "LogStart": "/Date(1701380100000+0000)/",
-        "LogEnd": "/Date(1701380120000+0000)/",
-        "Status": "FAILED",
-        "Sender": "SENDER_SYS",
-        "Receiver": "RECEIVER_SYS",
-        "LogLevel": "INFO"
-      }
-    ]
-  }
-}
+
 """
 
 from __future__ import annotations
