@@ -13,7 +13,8 @@ class Config(BaseSettings):
   sap_is_test_api_url: Optional[str] = None
   google_api_key: str
   gemini_model: str = "gemini-1.5-pro"
-  chroma_persist_dir: str = "./chroma_db"
+  chroma_host: Optional[str] = None
+  chroma_port: int = 8000
   log_level: str = "INFO"
 
   model_config = SettingsConfigDict(
@@ -37,6 +38,13 @@ class Config(BaseSettings):
       return None
     value = value.strip()
     return value or None
+
+  @field_validator("chroma_port")
+  @classmethod
+  def valid_port(cls, value: int) -> int:
+    if value <= 0:
+      raise ValueError("chroma_port must be a positive integer")
+    return value
 
   @field_validator("log_level")
   @classmethod
