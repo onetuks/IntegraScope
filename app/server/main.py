@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Request
 from starlette.middleware.cors import CORSMiddleware
 
-from app.server import API_VERSION, API_NAME, _success_response
-from app.server.security.cors import allowed_origins, allowed_methods, \
-  allowed_headers
+from app.server import API_NAME, API_VERSION, _success_response
+from app.server.security.cors import allowed_headers, allowed_methods, \
+  allowed_origins
 from app.server.utils.logger import logger
 
 

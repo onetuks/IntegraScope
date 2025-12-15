@@ -77,10 +77,10 @@ class VectorDBService:
   def _init_collection(self) -> Collection:
     metadata = {
       "description": "Error cases with embeddings for similarity search",
-      "schema_iflow_id": "string",
-      "schema_adapter_type": "string",
+      "schema_http_status": "integer",
+      "schema_exception": "string",
       "schema_error_type": "string",
-      "schema_created_at": "datetime",
+      "schema_error_cause": "string",
     }
 
     if self.enable_hybrid:
@@ -123,8 +123,8 @@ class VectorDBService:
 
     self._collection.upsert(
         ids=ids,
-        documents=documents,
-        metadatas=metadatas,
+        documents=documents, # 임베딩 벡터 생성 대상
+        metadatas=metadatas, # 검색 결과 필터링/분류 위한 부가정보
     )
     return ids
 
