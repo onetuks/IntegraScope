@@ -1,6 +1,8 @@
 import re
 from typing import Optional, List
 
+from app.server.models.document import Document
+
 
 class RegulationService:
   """MPL 응답을 Vector DB에 저장하기 위한 정규화 기능"""
@@ -88,10 +90,7 @@ class RegulationService:
     no_mpl = self._strip_mpl_line(log)
     masked = self._mask_urls(no_mpl)
     exc_name = self._extract_exception_name(masked)
-    body = "\n".join([ln.strip for ln in masked.splitlines() if ln.strip()])
-    head = f"HTTP_STATUS={http_status}"
-    lead = f"EXCEPTION={exc_name or 'Error'}"
-
-    if head:
-      return f"{head}\n{lead}\n{body}".strip()
-    return f"{lead}\n{body}".strip()
+    document = Document(head=http_status, body="\n".join(
+        [ln.strip for ln in masked.splitlines() if ln.strip()]),
+                        lead=exc_name or 'Error')
+    return str(document)

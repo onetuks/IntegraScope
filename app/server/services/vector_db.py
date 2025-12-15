@@ -106,10 +106,6 @@ class VectorDBService:
     metadatas: List[Dict[str, Any]] = []
 
     for case in cases:
-      document = case.get("text") or case.get("document")
-      if not document:
-        raise ValueError("Each case must include a non-empty 'text'")
-
       ids.append(case.get("id") or str(uuid4()))
       documents.append(document)
       metadata = {

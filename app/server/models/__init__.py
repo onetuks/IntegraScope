@@ -1,4 +1,4 @@
-from app.server.models.schemas import ProblemAnalysisResponse, MplLog, MplResultSet, \
+from app.server.models.mpl import ProblemAnalysisResponse, MplLog, MplResultSet, \
   MplResponse, parse_sap_datetime
 
 __all__ = [
