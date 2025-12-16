@@ -37,13 +37,13 @@ def parse_sap_datetime(raw: str) -> datetime:
 class MessageProcessingLogDto(BaseModel):
   """내부 API 응답 래퍼."""
 
-  message_guid: str = Field(..., alias="message guid")
-  correlation_id: str = Field(..., alias="correlation id")
-  artifact_id: str = Field(..., alias="Artifact Id")
-  artifact_name: str = Field(..., alias="Artifact Name")
-  artifact_type: str = Field(..., alias="Artifact Type")
-  package_id: str = Field(..., alias="Package Id")
-  package_name: str = Field(..., alias="Package Name")
+  message_guid: str = Field(..., description="message guid")
+  correlation_id: str = Field(..., description="correlation id")
+  artifact_id: str = Field(..., description="Artifact Id")
+  artifact_name: str = Field(..., description="Artifact Name")
+  artifact_type: str = Field(..., description="Artifact Type")
+  package_id: str = Field(..., description="Package Id")
+  package_name: str = Field(..., description="Package Name")
 
 
 class Metadata(BaseModel):

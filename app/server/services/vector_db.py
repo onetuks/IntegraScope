@@ -7,12 +7,13 @@ import chromadb
 from chromadb.api import Collection
 from chromadb.utils import embedding_functions
 
+from app.server.services.error_log import ErrorData
 from app.server.utils.config import get_config
 from app.server.utils.logger import logger
 
 
 class VectorDBService:
-  """Manage ChromaDB client and error_cases collection (HTTP or local)."""
+  """Manage ChromaDB component and error_cases collection (HTTP or local)."""
 
   COLLECTION_NAME = "integrascope"
 
@@ -44,8 +45,8 @@ class VectorDBService:
 
   def _init_client(self) -> chromadb.ClientAPI:
     """
-    Use HTTP client when CHROMA_HOST is provided; otherwise fall back to
-    embedded persistent client.
+    Use HTTP component when CHROMA_HOST is provided; otherwise fall back to
+    embedded persistent component.
     """
     return chromadb.HttpClient(host=self.host, port=self.port)
 
@@ -81,6 +82,7 @@ class VectorDBService:
       "schema_exception": "string",
       "schema_error_type": "string",
       "schema_error_cause": "string",
+      "schema_error_solution": "string",
     }
 
     if self.enable_hybrid:
@@ -93,7 +95,7 @@ class VectorDBService:
         embedding_function=self._embedding_function,
     )
 
-  def upsert_error_cases(self, cases: List[Dict[str, Any]]) -> List[str]:
+  def upsert(self, cases: List[Dict[str, Any]]) -> List[str]:
     """
     Store or update error cases. Each case requires a `text` field; optional
     metadata keys: iflow_id, adapter_type, error_type, created_at.
@@ -109,18 +111,19 @@ class VectorDBService:
       ids.append(case.get("id") or str(uuid4()))
       documents.append(document)
       metadata = {
-        "iflow_id": case.get("iflow_id"),
-        "adapter_type": case.get("adapter_type"),
+        "http_status": case.get("http_status"),
+        "exception": case.get("exception"),
         "error_type": case.get("error_type"),
-        "created_at": case.get("created_at"),
+        "error_cause": case.get("error_cause"),
+        "error_solution": case.get("error_solution"),
       }
       # Strip None values to keep collection filters clean.
       metadatas.append({k: v for k, v in metadata.items() if v is not None})
 
     self._collection.upsert(
         ids=ids,
-        documents=documents, # 임베딩 벡터 생성 대상
-        metadatas=metadatas, # 검색 결과 필터링/분류 위한 부가정보
+        documents=documents,  # 임베딩 벡터 생성 대상
+        metadatas=metadatas,  # 검색 결과 필터링/분류 위한 부가정보
     )
     return ids
 
@@ -133,17 +136,18 @@ class VectorDBService:
       include: Optional[List[str]] = None,
   ):
     """Retrieve similar error cases with optional metadata filters."""
-    include = include or ["documents", "metadatas", "distances"]
+    _include = include or ["documents", "embeddings", "metadatas", "distances",
+                           "uris", "data"]
     return self._collection.query(
         query_texts=[text],
         n_results=top_k,
         where=where,
         where_document=where_document,
-        include=include,
+        include=_include,
     )
 
   def healthcheck(self) -> bool:
-    """Basic connectivity check against the Chroma client and collection."""
+    """Basic connectivity check against the Chroma component and collection."""
     try:
       heartbeat = getattr(self._client, "heartbeat", None)
       if callable(heartbeat):
