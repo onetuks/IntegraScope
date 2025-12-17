@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Request
+from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 
 from app.server import API_NAME, API_VERSION, _success_response
 from app.server.security.cors import allowed_headers, allowed_methods, allowed_origins
+from app.server.services.log.error_log import ErrorLogService
 from app.server.utils.logger import logger
 
 
@@ -54,3 +56,13 @@ async def api_info(request: Request):
             "status": "ok",
         },
     )
+
+
+class ErrorAnalysisRequest(BaseModel):
+    artifact_id: str = Field(..., description="artifact name")
+
+
+@app.post("/api/analysis")
+async def analysis(request: ErrorAnalysisRequest):
+    error_data = ErrorLogService().request_error_data(request.artifact_id)
+    return _success_response(request, error_data)

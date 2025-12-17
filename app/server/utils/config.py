@@ -19,6 +19,7 @@ class Config(BaseSettings):
     )
 
     gemini_model: str = "gemini-1.5-pro"
+    gemini_temperature: float = 0.2
 
     chroma_host: Optional[str] = None
     chroma_port: int = 8000
