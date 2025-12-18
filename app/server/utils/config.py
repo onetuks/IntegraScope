@@ -1,8 +1,10 @@
 from functools import lru_cache
 from typing import Optional
 
-from pydantic import FieldValidationInfo, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from pydantic.v1 import BaseSettings
+from pydantic_core.core_schema import FieldValidationInfo
+from pydantic_settings import SettingsConfigDict
 
 
 class Config(BaseSettings):
