@@ -1,0 +1,88 @@
+from enum import Enum
+
+from charset_normalizer.md import lru_cache
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+from app.server.lang_chain import ANALYSIS_SYSTEM_PROMPT, SOLUTION_SYSTEM_PROMPT, ANALYSIS_USER_PROMPT, \
+    SOLUTION_USER_PROMPT
+from app.server.utils.config import get_config
+
+
+class AgentType(Enum):
+    ANALYSIS = "ANALYSIS"
+    SOLUTION = "SOLUTION"
+
+
+class LangChainClient:
+    def __init__(self):
+        self._llm = self._build_llm()
+        self._chain = self._build_chain()
+
+    def _build_llm(self):
+        config = get_config()
+        if not config.google_api_key:
+            raise EnvironmentError("google_api_key is required")
+
+        return ChatGoogleGenerativeAI(
+            model=config.gemini_model,
+            temperature=config.temperature,
+            max_output_tokens=1024,
+            google_api_key=config.google_api_key,
+        )
+
+    def _build_chain(self):
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", "{system_prompt}"),
+                ("user", "{user_prompt}")
+            ]
+        )
+        return prompt | self._llm | JsonOutputParser()
+
+    @staticmethod
+    def _format_system_prompt(
+            agent_type: AgentType,
+            artifact_type: str,
+            status_code: int,
+            exception: str,
+            log: str
+    ) -> str:
+        if agent_type == AgentType.ANALYSIS:
+            return ANALYSIS_SYSTEM_PROMPT.format(
+                artifact_type=artifact_type, status_code=status_code, exception=exception, log=log)
+        return SOLUTION_SYSTEM_PROMPT.format(
+            artifact_type=artifact_type, status_code=status_code, exception=exception, log=log)
+
+    @staticmethod
+    def _format_user_prompt(
+            agent_type: AgentType,
+            artifact_type: str,
+            status_code: int,
+            exception: str,
+            log: str
+    ) -> str:
+        if agent_type == AgentType.ANALYSIS:
+            return ANALYSIS_USER_PROMPT.format(
+                artifact_type=artifact_type, status_code=status_code, exception=exception, log=log)
+        return SOLUTION_USER_PROMPT.format(
+            artifact_type=artifact_type, status_code=status_code, exception=exception, log=log)
+
+    def run_pipeline(self, agent_type: AgentType, artifact_type: str, status_code: int, exception: str, log: str):
+        system_prompt = self._format_system_prompt(agent_type=agent_type,
+                                              artifact_type=artifact_type,
+                                              status_code=status_code,
+                                              exception=exception,
+                                              log=log)
+        user_prompt = self._format_user_prompt(agent_type=agent_type,
+                                          artifact_type=artifact_type,
+                                          status_code=status_code,
+                                          exception=exception,
+                                          log=log)
+        return self._chain.invoke({"system_prompt": system_prompt, "user_prompt": user_prompt})
+
+
+@lru_cache(maxsize=1)
+def get_langchain_client() -> LangChainClient:
+    return LangChainClient()
