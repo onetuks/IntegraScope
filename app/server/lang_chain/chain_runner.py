@@ -69,7 +69,7 @@ class LangChainClient:
         return SOLUTION_USER_PROMPT.format(
             artifact_type=artifact_type, status_code=status_code, exception=exception, log=log)
 
-    def run_pipeline(self, agent_type: AgentType, artifact_type: str, status_code: int, exception: str, log: str):
+    def run_chain(self, agent_type: AgentType, artifact_type: str, status_code: int, exception: str, log: str):
         system_prompt = self._format_system_prompt(agent_type=agent_type,
                                               artifact_type=artifact_type,
                                               status_code=status_code,
