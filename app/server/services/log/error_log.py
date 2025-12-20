@@ -18,6 +18,7 @@ class ErrorData:
     log_start: datetime
     log_end: datetime
     log: str
+    origin_log: str
     status_code: Optional[int]
     exception: Optional[str]
 
@@ -48,7 +49,7 @@ class ErrorLogService:
                                                token=self._token)
         raw_log = self._error_info_api_client.get_err_log(
             message_guid=mpl_dto.message_guid, token=self._token)
-        log_dto = self._error_log_regulation.normalize_log(log=raw_log)
+        log_dto = self._error_log_regulation.normalize_log(raw_log=raw_log)
 
         return ErrorData(
             artifact_id=mpl_dto.artifact_id,
@@ -58,6 +59,7 @@ class ErrorLogService:
             log_start=mpl_dto.log_start,
             log_end=mpl_dto.log_end,
             log=log_dto.normalized_log,
+            origin_log=log_dto.origin_log,
             status_code=log_dto.status_code,
             exception=log_dto.exception,
         )

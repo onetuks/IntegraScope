@@ -9,6 +9,7 @@ class ErrorLogRegulationDto(BaseModel):
     status_code: int
     exception: str
     normalized_log: str
+    origin_log: str
 
 
 class ErrorLogRegulationComponent:
@@ -51,12 +52,12 @@ class ErrorLogRegulationComponent:
             return None
         return first_line.split(":")[0].strip()
 
-    def normalize_log(self, log: str) -> ErrorLogRegulationDto:
-        if log is None or log.strip() == "":
+    def normalize_log(self, raw_log: str) -> ErrorLogRegulationDto:
+        if raw_log is None or raw_log.strip() == "":
             raise ValueError("log is empty")
 
-        status_code = self._extract_status_code(log)
-        no_mpl = self._strip_mpl_line(log)
+        status_code = self._extract_status_code(raw_log)
+        no_mpl = self._strip_mpl_line(raw_log).strip()
         masked = self._mask_urls(no_mpl)
         cleaned_lines = [
             ln.strip() for ln in masked.splitlines() if ln.strip()
@@ -68,4 +69,5 @@ class ErrorLogRegulationComponent:
             status_code=status_code,
             exception=exception,
             normalized_log=normalized_log,
+            origin_log=no_mpl
         )
