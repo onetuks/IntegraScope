@@ -14,11 +14,11 @@ ANALYSIS_USER_PROMPT = """
 Analyze the following SAP Integration Suite MPL failure data.
 
 INPUT
-- artifact_type: {artifact_type}
-- status_code: {status_code}
-- exception: {exception}
+- artifact_type: {{artifact_type}}
+- status_code: {{status_code}}
+- exception: {{exception}}
 - log: |
-{log}
+{{log}}
 
 TASK
 1) Classify the incident into a category.
@@ -68,14 +68,14 @@ You will generate a remediation plan based on:
 2) Analysis result JSON
 
 ORIGINAL EVIDENCE
-- artifact_type: {artifact_type}
-- status_code: {status_code}
-- exception: {exception}
+- artifact_type: {{artifact_type}}
+- status_code: {{status_code}}
+- exception: {{exception}}
 - log: |
-{log}
+{{log}}
 
 ANALYSIS JSON
-{analysis_json}
+{{analysis_json}}
 
 TASK
 Create a practical remediation plan:
