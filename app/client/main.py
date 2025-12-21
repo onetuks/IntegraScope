@@ -11,9 +11,10 @@ st.set_page_config(page_title="i-Scope", layout="wide")
 NAV_TITLE = "I-Scope"
 
 PAGE_LABELS = {
-    "error_analysis": "Error Analysis",
+    "analysis": "Error Analysis",
     "test_execution": "Test Execution",
     "case_search": "Case Search",
+    "tested": "Tested iFlows",
 }
 
 
