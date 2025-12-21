@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 import requests
+from fastapi import HTTPException
 
 from app.server.sap.log import MplApiClient, ErrorInfoApiClient, OAuth2Client
 from app.server.sap.log.error_regulation import \
@@ -44,12 +45,15 @@ class ErrorLogService:
         self._error_log_regulation = ErrorLogRegulationComponent()
         self._token = self._oauth2_client.get_access_token()
 
-    def request_error_data(self, artifact_id: str) -> ErrorData:
-        mpl_dto = self._mpl_api_client.get_mpl(artifact_id=artifact_id,
-                                               token=self._token)
-        raw_log = self._error_info_api_client.get_err_log(
-            message_guid=mpl_dto.message_guid, token=self._token)
-        log_dto = self._error_log_regulation.normalize_log(raw_log=raw_log)
+    def request_error_data(self, message_guid: str) -> ErrorData:
+        try:
+            mpl_dto = self._mpl_api_client.get_mpl(message_guid=message_guid,
+                                                   token=self._token)
+            raw_log = self._error_info_api_client.get_err_log(
+                message_guid=mpl_dto.message_guid, token=self._token)
+            log_dto = self._error_log_regulation.normalize_log(raw_log=raw_log)
+        except ValueError as e:
+            raise HTTPException(status_code=204, detail="Error Log is gone")
 
         return ErrorData(
             artifact_id=mpl_dto.artifact_id,

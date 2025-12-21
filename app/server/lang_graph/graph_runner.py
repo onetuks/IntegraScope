@@ -45,10 +45,10 @@ class LangGraphClient:
     return builder.compile()
 
   def _error_log(self, state: GraphState) -> GraphState:
-    artifact_id = state["artifact_id"]
+    artifact_id = state["message_guid"]
     error_data = ErrorLogService().request_error_data(artifact_id)
     return {
-      "artifact_id": artifact_id,
+      "artifact_id": error_data.artifact_id,
       "artifact_type": error_data.artifact_type,
       "package_id": error_data.package_id,
       "message_guid": error_data.message_guid,
@@ -93,14 +93,14 @@ class LangGraphClient:
         "solution": solution,
       }
     except TypeError as e:
-      raise HTTPException(status_code=500,
+      raise HTTPException(status_code=400,
                           detail="Prompt format Failed" + str(e))
     except Exception as e:
-      raise HTTPException(status_code=500,
+      raise HTTPException(status_code=400,
                           detail="Solution chain Failed: " + str(e))
 
-  def run(self, artifact_id: str):
-    init_state: GraphState = {"artifact_id": artifact_id}
+  def run(self, message_guid: str):
+    init_state: GraphState = {"message_guid": message_guid}
     try:
       return self._graph.invoke(init_state)
     except HTTPException as exc:

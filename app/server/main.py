@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Optional
 
 from fastapi import FastAPI, Request, Depends
 from pydantic import BaseModel, Field
@@ -59,7 +59,7 @@ async def api_info():
 
 
 class ErrorAnalysisRequest(BaseModel):
-    artifact_id: str = Field(..., description="artifact name")
+    message_guid: str = Field(..., description="message guid")
 
 
 class AnalysisResponse(BaseModel):
@@ -70,7 +70,7 @@ class AnalysisResponse(BaseModel):
     log_start: str
     log_end: str
     log: str
-    status_code: int
+    status_code: Optional[int]
     exception: str
     analysis: str
     solution: str
@@ -80,7 +80,7 @@ class AnalysisResponse(BaseModel):
 async def analysis(
         request: ErrorAnalysisRequest,
         graph_runner: LangGraphClient = Depends(get_langgraph_client)):
-    state = graph_runner.run(artifact_id=request.artifact_id)
+    state = graph_runner.run(message_guid=request.message_guid)
     return AnalysisResponse(
         artifact_id=state.get("artifact_id"),
         artifact_type=state.get("artifact_type"),

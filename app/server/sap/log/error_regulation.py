@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 
 class ErrorLogRegulationDto(BaseModel):
-    status_code: int
+    status_code: Optional[int]
     exception: str
     normalized_log: str
     origin_log: str
