@@ -1,21 +1,30 @@
 from typing import Optional
 
 import requests
+from requests import Response
 
-SERVER_BASE_URL = "http://localhost:8000"
-
-
-async def get(uri: Optional[str] = None):
-    return requests.get(SERVER_BASE_URL + uri).raise_for_status()
+API_BASE_URL = "http://localhost:8000"
 
 
-async def post(uri: Optional[str] = None, body: Optional[dict] = None):
-    return requests.post(SERVER_BASE_URL + uri, json=body).raise_for_status()
+def get(uri: Optional[str] = None) -> Response:
+    response = requests.get(API_BASE_URL + uri)
+    response.raise_for_status()
+    return response
 
 
-async def put(uri: Optional[str] = None, body: Optional[dict] = None):
-    return requests.put(SERVER_BASE_URL + uri, json=body).raise_for_status()
+def post(uri: Optional[str] = None, body: Optional[dict] = None, timeout: Optional[int] = None) -> Response:
+    response = requests.post(API_BASE_URL + uri, json=body, timeout=timeout)
+    response.raise_for_status()
+    return response
 
 
-async def delete(uri: Optional[str] = None):
-    return requests.delete(SERVER_BASE_URL + uri).raise_for_status()
+def put(uri: Optional[str] = None, body: Optional[dict] = None) -> Response:
+    response = requests.put(API_BASE_URL + uri, json=body)
+    response.raise_for_status()
+    return response
+
+
+def delete(uri: Optional[str] = None):
+    response = requests.delete(API_BASE_URL + uri)
+    response.raise_for_status()
+    return response

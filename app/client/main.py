@@ -1,8 +1,14 @@
+import sys
 from pathlib import Path
 
 import streamlit as st
 
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
 st.set_page_config(page_title="i-Scope", layout="wide")
+
+NAV_TITLE = "I-Scope"
 
 PAGE_LABELS = {
     "error_analysis": "Error Analysis",
@@ -25,5 +31,6 @@ pages = load_pages()
 if not pages:
     st.error("앱에서 표시할 페이지가 없습니다.")
 else:
+    st.sidebar.markdown(f"### {NAV_TITLE}")
     navigation = st.navigation(pages)
     navigation.run()
