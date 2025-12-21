@@ -7,7 +7,7 @@ from langgraph.graph import END, StateGraph
 
 from app.server.lang_chain.chain_runner import LangChainClient, \
   get_langchain_client, AgentType
-from app.server.services.log.error_log import ErrorLogService
+from app.server.sap.log.error_log import ErrorLogService
 
 
 class GraphState(TypedDict, total=False):

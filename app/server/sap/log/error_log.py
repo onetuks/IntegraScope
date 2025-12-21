@@ -4,8 +4,8 @@ from typing import Optional
 
 import requests
 
-from app.server.services.log import MplApiClient, ErrorInfoApiClient, OAuth2Client
-from app.server.services.log.error_regulation import \
+from app.server.sap.log import MplApiClient, ErrorInfoApiClient, OAuth2Client
+from app.server.sap.log.error_regulation import \
     ErrorLogRegulationComponent
 
 
