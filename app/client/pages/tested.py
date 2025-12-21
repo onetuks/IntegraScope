@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -31,14 +32,10 @@ def fetch_tested(log_start: str, log_end: str) -> Tuple[Optional[List[Dict[str, 
     try:
         response = get(f"/api/tested?log_start={log_start}&log_end={log_end}")
         data = response.json()
+        message_guids = list()
         return data.get("tested_artifacts", []), None
     except Exception as exc:
         return None, str(exc)
-
-
-def status_badge(status: str) -> str:
-    color = {"COMPLETED": "green", "FAILED": "red"}.get(status.upper(), "gray")
-    return f"<span style='padding:2px 8px;border-radius:999px;background:{color};color:white;font-weight:600;'>{status}</span>"
 
 
 st.title("Tested iFlows")
@@ -58,10 +55,10 @@ stored_start = st.session_state.get("tested_start_dt", default_start)
 stored_end = st.session_state.get("tested_end_dt", default_end)
 
 col_range = st.columns([1, 1, 0.5])
-start_dt = col_range[0].datetime_input("시작 시간", value=stored_start)
-end_dt = col_range[1].datetime_input("종료 시간", value=stored_end)
+start_dt = col_range[0].datetime_input("Log Start", value=stored_start)
+end_dt = col_range[1].datetime_input("Log End", value=stored_end)
 col_range[2].container(height=10, border=False)
-refresh = col_range[2].button("조회", type="primary", use_container_width=True)
+refresh = col_range[2].button("Fetch", type="primary", use_container_width=True)
 
 log_start_param = start_dt.isoformat()
 log_end_param = end_dt.isoformat()
@@ -98,29 +95,65 @@ if not artifacts:
     st.stop()
 
 st.markdown("#### 실행 결과")
-header_cols = st.columns([3, 2.5, 2, 2, 1.5, 1.5])
-header_cols[0].markdown("**Artifact**")
-header_cols[1].markdown("**Package**")
-header_cols[2].markdown("**Message GUID**")
-header_cols[3].markdown("**Correlation ID**")
-header_cols[4].markdown("**Duration**")
-header_cols[5].markdown("**Status**")
 
-for item in artifacts:
-    cols = st.columns([3, 2.5, 2, 2, 1.5, 1.5])
+header_cols = st.columns([4, 3, 1])
+header_cols[0].markdown("**Package / Artifact**")
+header_cols[1].markdown("**Message / Correlation**")
+header_cols[2].markdown("**Status / Duration**")
 
-    artifact_label = item.get("artifact_id", "-")
-    if cols[0].button(
-        artifact_label,
-        key=f"artifact_{item.get('message_guid', artifact_label)}",
+seen_guids = set()
+for idx, item in enumerate(artifacts):
+    msg_guid = item.get("message_guid")
+    if msg_guid in seen_guids:
+        continue
+    seen_guids.add(msg_guid)
+
+    row_key = msg_guid or f"row_{idx}_{item.get('artifact_id', 'artifact')}"
+    container = st.container(border=True)
+    cols = container.columns([4, 3, 1])
+
+    cols[0].text_input(
+        label="Package Id",
+        value=item.get("package_id", "-"),
+        key=f"{row_key}_package",
+        disabled=True,
+    )
+    cols[0].text_input(
+        label="Artifact Id",
+        value=item.get("artifact_id", "-"),
+        key=f"{row_key}_artifact",
+        disabled=True,
+    )
+
+    cols[1].text_input(
+        label="Message GUID",
+        value=msg_guid or "-",
+        key=f"{row_key}_message_guid",
+        disabled=True,
+    )
+    cols[1].text_input(
+        label="Correlation Id",
+        value=item.get("correlation_id", "-"),
+        key=f"{row_key}_correlation",
+        disabled=True,
+    )
+
+    status_color = (
+        "red"
+        if item.get("status", "-") == "FAILED"
+        else "green"
+        if item.get("status") == "COMPLETED"
+        else "orange"
+    )
+    cols[2].badge(item.get("status", "-"), color=status_color)
+    cols[2].caption(format_duration(item.get("log_start"), item.get("log_end")))
+    cols[2].caption(item.get("log_start").replace("T", " ")[:-8])
+    if cols[2].button(
+        label="Analyze",
         use_container_width=True,
+        type="primary",
+        key=f"analyze_btn_{row_key}",
     ):
         st.session_state["artifact_id"] = item.get("artifact_id")
-        st.session_state["message_guid"] = item.get("message_guid")
+        st.session_state["message_guid"] = msg_guid
         st.switch_page("pages/analysis.py")
-
-    cols[1].markdown(item.get("package_id", "-"))
-    cols[2].code(item.get("message_guid", "-"), language="")
-    cols[3].code(item.get("correlation_id", "-"), language="")
-    cols[4].markdown(format_duration(item.get("log_start"), item.get("log_end")))
-    cols[5].markdown(status_badge(item.get("status", "-")), unsafe_allow_html=True)
