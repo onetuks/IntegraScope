@@ -1,3 +1,7 @@
+from typing import Dict, List
+
+from pydantic import BaseModel
+
 ANALYSIS_SYSTEM_PROMPT = """
 You are a senior SAP Integration Suite (Cloud Integration/CPI) troubleshooting expert.
 You must only use the provided evidence (log/exception/status_code/artifact_type).
@@ -30,7 +34,7 @@ OUTPUT JSON SCHEMA (Korean)
 {
   "summary": "한 문장 요약",
   "classification": {
-    "category": "HTTP|AUTH|TLS|TIMEOUT|MAPPING|ROUTING|ADAPTER_CONFIG|EXTERNAL_SYSTEM|UNKNOWN",
+    "category": ["HTTP","AUTH","TLS","TIMEOUT","MAPPING","ROUTING","ADAPTER_CONFIG","EXTERNAL_SYSTEM","UNKNOWN"],
     "confidence": 0.0
   },
   "top_causes": [
@@ -92,7 +96,7 @@ OUTPUT JSON SCHEMA (Korean)
             "check_list": [
                 { "target": "iFlow/Adapter/보안자격증명 등", "check_points": ["항목1", "항목2"], "expected": "무엇이 확인되면 무엇을 의미" }
             ],
-            "prove_senario": "재현/확인 시나리오",
+            "prove_scenario": "재현/확인 시나리오",
             "prevention": "구조적 개선점",
             "additional_data_needed": [
                 { "data": "최소 추가 데이터", "reason": "왜", "how": "어디서" }
@@ -106,3 +110,46 @@ CONSTRAINTS
 - Use the hypotheses and verification results from the analysis.
 - Prefer safe and reversible actions first.
 """
+
+
+class ClassificationModel(BaseModel):
+    category: List[str]
+    confidence: float
+
+
+class TopCausesModel(BaseModel):
+    hypothesis: str
+    evidence: List[str]
+    how_to_verify: List[str]
+
+
+class AdditionalDataNeededModel(BaseModel):
+    data: str
+    reason: str
+    how: str
+
+
+class AnalysisModel(BaseModel):
+    summary: str
+    classification: ClassificationModel
+    top_causes: List[TopCausesModel]
+    question_for_user: List[str]
+    additional_data_needed: List[AdditionalDataNeededModel]
+
+
+class SolutionCheckListItem(BaseModel):
+    target: str
+    check_points: List[str]
+    expected: str
+
+
+class SolutionModel(BaseModel):
+    fix_plan: str
+    check_list: List[SolutionCheckListItem]
+    prove_scenario: str
+    prevention: str
+    additional_data_needed: List[AdditionalDataNeededModel]
+
+
+class SolutionsModel(BaseModel):
+    solutions: List[SolutionModel]

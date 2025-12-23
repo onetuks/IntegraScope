@@ -29,7 +29,8 @@ class LangChainClient:
 
     return ChatGoogleGenerativeAI(
         model=config.gemini_model,
-        temperature=config.temperature
+        temperature=config.temperature,
+        api_key=config.google_api_key,
     )
 
   def _build_chain(self):

@@ -71,8 +71,10 @@ def render_analysis(analysis: Dict[str, Any]):
 
         classification = analysis.get("classification") or {}
         class_cols = st.columns([1, 1])
-        class_cols[0].markdown("**Classification**")
-        class_cols[0].badge(classification.get("category", "-"), color="orange")
+        print(classification.get("category"))
+        for category in classification.get("category"):
+            class_cols[0].badge(category, color="orange")
+        # class_cols[0].badge(classification.get("category", "-"), color="orange")
         class_cols[1].markdown("**Confidence**")
         class_cols[1].badge(f"{classification.get('confidence') * 100:.0f}%", color="blue")
 
@@ -177,9 +179,9 @@ def render_data_fetch() -> Dict[str, Any]:
         data, error = fetch_analysis(message_guid.strip())
         if data:
             _payload = data
-            st.success("API 응답을 불러왔습니다.")
+            st.success("오류 분석에 성공했습니다")
         else:
-            st.error(f"API 요청 실패: {error}")
+            st.error(f"오류 분석 실패: {error}")
 
     st.divider()
 
@@ -191,9 +193,10 @@ def render_data_fetch() -> Dict[str, Any]:
 
 
 payload: Dict[str, Any] = render_data_fetch()
-render_overview(payload)
-render_analysis(payload.get("analysis") or {})
-render_solutions(payload.get("solution") or {})
+with st.spinner("분석 결과를 불러오는중"):
+    render_overview(payload)
+    render_analysis(payload.get("analysis") or {})
+    render_solutions(payload.get("solution") or {})
 
 with st.expander("Raw payload 보기"):
     st.json(payload)

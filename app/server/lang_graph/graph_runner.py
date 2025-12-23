@@ -18,6 +18,7 @@ class GraphState(TypedDict, total=False):
   log_start: str
   log_end: str
   log: str
+  origin_log: str
   status_code: Optional[int]
   exception: Optional[str]
   analysis: Optional[str]
@@ -55,6 +56,7 @@ class LangGraphClient:
       "log_start": format_datetime(error_data.log_start),
       "log_end": format_datetime(error_data.log_end),
       "log": error_data.log,
+      "origin_log": error_data.origin_log,
       "status_code": error_data.status_code,
       "exception": error_data.exception,
     }

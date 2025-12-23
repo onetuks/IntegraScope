@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from fastapi import FastAPI, Request, Depends
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 
 from app.server import API_NAME, API_VERSION
+from app.server.lang_chain import AnalysisModel, SolutionsModel
 from app.server.lang_graph.graph_runner import LangGraphClient, \
     get_langgraph_client
 from app.server.security.cors import allowed_headers, allowed_methods, \
@@ -70,10 +71,11 @@ class AnalysisResponse(BaseModel):
     log_start: str
     log_end: str
     log: str
+    origin_log: str
     status_code: Optional[int]
     exception: str
-    analysis: str
-    solution: str
+    analysis: AnalysisModel
+    solution: SolutionsModel
 
 
 @app.post("/api/analysis", response_model=AnalysisResponse)
@@ -89,6 +91,7 @@ async def analysis(
         log_start=state.get("log_start"),
         log_end=state.get("log_end"),
         log=state.get("log"),
+        origin_log=state.get("origin_log"),
         status_code=state.get("status_code"),
         exception=state.get("exception"),
         analysis=state.get("analysis"),
