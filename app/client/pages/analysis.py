@@ -176,7 +176,8 @@ def render_data_fetch() -> Dict[str, Any]:
     fetch_clicked = fetch_cols[1].button("Analyze & Solution", type="primary", use_container_width=True)
 
     if fetch_clicked:
-        data, error = fetch_analysis(message_guid.strip())
+        with st.spinner("분석 결과를 불러오는중..."):
+            data, error = fetch_analysis(message_guid.strip())
         if data:
             _payload = data
             st.success("오류 분석에 성공했습니다")
@@ -193,10 +194,9 @@ def render_data_fetch() -> Dict[str, Any]:
 
 
 payload: Dict[str, Any] = render_data_fetch()
-with st.spinner("분석 결과를 불러오는중"):
-    render_overview(payload)
-    render_analysis(payload.get("analysis") or {})
-    render_solutions(payload.get("solution") or {})
+render_overview(payload)
+render_analysis(payload.get("analysis") or {})
+render_solutions(payload.get("solution") or {})
 
 with st.expander("Raw payload 보기"):
     st.json(payload)

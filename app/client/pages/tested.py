@@ -20,6 +20,8 @@ default_start, default_end = get_default_time_period()
 stored_start = st.session_state.get("tested_start_dt", default_start)
 stored_end = st.session_state.get("tested_end_dt", default_end)
 
+STATUS_FILTER_OPTIONS = ["ALL", "COMPLETED", "ESCALATED", "DISCARED", "FAILED"]
+
 
 def render_time_period():
     global artifacts
@@ -61,9 +63,7 @@ def render_time_period():
         st.stop()
 
 
-def render_tested_list():
-    st.markdown("#### Tested Flow List")
-
+def render_tested_list(selectbox: str):
     header_cols = st.columns([4, 3, 1])
     header_cols[0].markdown("**Package / Artifact**")
     header_cols[1].markdown("**Message / Correlation**")
@@ -71,6 +71,9 @@ def render_tested_list():
 
     seen_guids = set()
     for idx, item in enumerate(artifacts):
+        if selectbox != "ALL" and item.get("status") != selectbox:
+            continue
+
         msg_guid = item.get("message_guid")
         if msg_guid in seen_guids:
             continue
@@ -84,26 +87,22 @@ def render_tested_list():
             label="Package Id",
             value=item.get("package_id", "-"),
             key=f"{row_key}_package",
-            disabled=True,
         )
         cols[0].text_input(
             label="Artifact Id",
             value=item.get("artifact_id", "-"),
             key=f"{row_key}_artifact",
-            disabled=True,
         )
 
         cols[1].text_input(
             label="Message GUID",
             value=msg_guid or "-",
             key=f"{row_key}_message_guid",
-            disabled=True,
         )
         cols[1].text_input(
             label="Correlation Id",
             value=item.get("correlation_id", "-"),
             key=f"{row_key}_correlation",
-            disabled=True,
         )
 
         status_color = (
@@ -121,6 +120,7 @@ def render_tested_list():
                 use_container_width=True,
                 type="primary",
                 key=f"analyze_btn_{row_key}",
+                disabled=item.get("status") != "FAILED",
         ):
             st.session_state["message_guid"] = msg_guid
             st.switch_page("pages/analysis.py")
@@ -131,4 +131,7 @@ st.caption("최근 테스트된 iFlow 실행 결과 목록")
 
 artifacts = list()
 render_time_period()
-render_tested_list()
+title_cols = st.columns([5, 1])
+title_cols[0].markdown("#### Tested Flow List")
+selectbox = title_cols[1].selectbox("Filter", options=STATUS_FILTER_OPTIONS)
+render_tested_list(selectbox)

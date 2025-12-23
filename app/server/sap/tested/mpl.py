@@ -67,4 +67,4 @@ class TestedMplClient:
                     status=artifact["Status"],
                 )
             )
-        return tested_artifacts
+        return sorted(tested_artifacts, key=lambda a: a.log_start, reverse=True)
