@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict
+from typing import List, Optional
 
-from fastapi import FastAPI, Request, Depends, Query
+from fastapi import FastAPI, Depends
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 
@@ -9,9 +9,10 @@ from app.server import API_NAME, API_VERSION
 from app.server.lang_chain import AnalysisModel, SolutionsModel
 from app.server.lang_graph.graph_runner import LangGraphClient, \
     get_langgraph_client
+from app.server.sap.object.object_search import ObjectSearch
+from app.server.sap.tested.mpl import TestedMplDto, TestedMplClient
 from app.server.security.cors import allowed_headers, allowed_methods, \
     allowed_origins
-from app.server.sap.tested.mpl import TestedMplDto, TestedMplClient
 from app.server.utils.logger import logger
 
 
@@ -109,5 +110,17 @@ async def tested(
         log_end: datetime = datetime.now(),
         status: str = "ALL"
 ):
-    artifacts = TestedMplClient().get_tested_artifacts(log_start, log_end, status)
+    artifacts = TestedMplClient().get_tested_artifacts(log_start, log_end,
+                                                       status)
     return TestedResponse(tested_artifacts=artifacts)
+
+
+@app.get("/api/packages")
+async def packages():
+    packages = ObjectSearch().get_package_list()
+    return packages
+
+
+@app.get("/api/artifacts")
+async def artifacts(package_id: str):
+    return ObjectSearch().get_artifact_list(package_id)

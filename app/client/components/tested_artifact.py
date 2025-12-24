@@ -1,7 +1,7 @@
 from datetime import datetime
+from typing import Any
 
 import streamlit as st
-from typing import Any
 
 from app.client.utils.utils import format_duration
 
@@ -61,4 +61,4 @@ class TestedArtifact:
                                                           "ESCALATED"),
         ):
             st.session_state["message_guid"] = msg_guid
-            st.switch_page("pages/msgid_analysis.py")
+            st.switch_page("pages/analysis.py")

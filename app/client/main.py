@@ -22,6 +22,8 @@ def load_pages():
     for page_path in sorted(pages_dir.glob("*.py")):
         if "__init__.py" in page_path.name:
             continue
+        if "analysis.py" in page_path.name:
+            continue
         stem = page_path.stem
         title = PAGE_LABELS.get(stem, stem.replace("_", " ").title())
         page_list.append(st.Page(str(page_path.resolve()), title=title))
