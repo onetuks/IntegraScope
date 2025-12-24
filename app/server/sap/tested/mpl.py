@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from app.server.sap.oauth2 import OAuth2Client
 from app.server.utils.config import get_config
-from app.server.utils.datetime import ms_to_tz
+from app.server.utils.datetime import ms_to_tz, to_gmt_0, to_gmt_9
 
 
 class TestedMplDto(BaseModel):
@@ -43,8 +43,10 @@ class TestedMplClient:
         :param log_end: 로그 종료 시간
         :return: TestedMplDto
         """
+        gmt_log_start, gmt_log_end = to_gmt_0(log_start), to_gmt_0(log_end)
+
         response = self._session.get(
-            url=f"{self._URL}?$filter=LogStart gt datetime'{log_start}' and LogEnd lt datetime'{log_end}'",
+            url=f"{self._URL}?$filter=LogStart gt datetime'{gmt_log_start}' and LogEnd lt datetime'{gmt_log_end}'",
             headers={
                 'Accept': 'application/json',
                 'Authorization': f"Bearer {self._oauth2_client.get_access_token()}"
@@ -62,8 +64,8 @@ class TestedMplClient:
                     package_id=artifact["IntegrationArtifact"]["PackageId"],
                     message_guid=artifact["MessageGuid"],
                     correlation_id=artifact["CorrelationId"],
-                    log_start=ms_to_tz(artifact["LogStart"][6:-2]),
-                    log_end=ms_to_tz(artifact["LogEnd"][6:-2]),
+                    log_start=to_gmt_9(ms_to_tz(artifact["LogStart"][6:-2])),
+                    log_end=to_gmt_9(ms_to_tz(artifact["LogEnd"][6:-2])),
                     status=artifact["Status"],
                 )
             )
