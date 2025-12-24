@@ -120,7 +120,7 @@ def render_tested_list(selectbox: str):
                 use_container_width=True,
                 type="primary",
                 key=f"analyze_btn_{row_key}",
-                disabled=item.get("status") != "FAILED",
+                disabled=item.get("status") not in ("FAILED", "ESCALATED"),
         ):
             st.session_state["message_guid"] = msg_guid
             st.switch_page("pages/analysis.py")
