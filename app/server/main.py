@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict
 
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends, Query
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 
@@ -105,8 +105,9 @@ class TestedResponse(BaseModel):
 
 @app.get("/api/tested", response_model=TestedResponse)
 async def tested(
-        log_start: str = str(datetime.now() - timedelta(hours=2)),
-        log_end: str = str(datetime.now())
+        log_start: datetime = datetime.now() - timedelta(hours=2),
+        log_end: datetime = datetime.now(),
+        status: str = "ALL"
 ):
-    artifacts = TestedMplClient().get_tested_artifacts(log_start, log_end)
+    artifacts = TestedMplClient().get_tested_artifacts(log_start, log_end, status)
     return TestedResponse(tested_artifacts=artifacts)

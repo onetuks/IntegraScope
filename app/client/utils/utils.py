@@ -21,15 +21,3 @@ def format_duration(start: Optional[str], end: Optional[str]) -> str:
         return f"{seconds:.1f}s"
     minutes, remainder = divmod(int(seconds), 60)
     return f"{minutes}m {remainder}s"
-
-
-def ceil_to_next_hour(dt: datetime) -> datetime:
-    base = dt.replace(minute=0, second=0, microsecond=0)
-    return base + timedelta(hours=1)
-
-
-def get_default_time_period() -> Tuple[datetime, datetime]:
-    now = datetime.now()
-    default_end = ceil_to_next_hour(now)
-    default_start = default_end - timedelta(hours=2)
-    return default_start, default_end
