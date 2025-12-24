@@ -142,29 +142,6 @@ def render_solutions(solution: Dict[str, Any]):
                         st.caption(f"  확보 방법: {item.get('how', '-')}")
 
 
-st.title("Error Analysis")
-st.caption("iFlow 장애 로그를 받아 분석/해결 가이드를 한눈에 확인하세요.")
-
-st.markdown(
-    """
-    <style>
-    .pill {
-        display: inline-flex;
-        padding: 4px 10px;
-        border-radius: 999px;
-        color: #f8fafc;
-        font-size: 0.85rem;
-        font-weight: 600;
-    }
-    [data-testid="stExpander"] details summary {
-        font-weight: 700;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-
 def render_data_fetch() -> Dict[str, Any]:
     _payload: Dict[str, Any] = {}
 
@@ -192,10 +169,31 @@ def render_data_fetch() -> Dict[str, Any]:
 
     return _payload
 
+st.title("Error Analysis")
+st.caption("iFlow 장애 로그를 받아 분석/해결 가이드를 한눈에 확인하세요.")
+
+st.markdown(
+    """
+    <style>
+    .pill {
+        display: inline-flex;
+        padding: 4px 10px;
+        border-radius: 999px;
+        color: #f8fafc;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    [data-testid="stExpander"] details summary {
+        font-weight: 700;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 payload: Dict[str, Any] = render_data_fetch()
 render_overview(payload)
-render_analysis(payload.get("analysis") or {})
+render_analysis(payload.get("") or {})
 render_solutions(payload.get("solution") or {})
 
 with st.expander("Raw payload 보기"):

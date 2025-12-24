@@ -46,10 +46,18 @@ def render_list():
 st.title("Tested iFlows")
 st.caption("최근 테스트된 iFlow 실행 결과 목록")
 
-tested_state = TestedState() if "tested_state" not in st.session_state else \
-    st.session_state["tested_state"]
-tested_fetch = TestedFetch() if "tested_fetch" not in st.session_state else \
-    st.session_state["tested_fetch"]
+if "tested_state" not in st.session_state:
+    tested_state = TestedState()
+    st.session_state["tested_state"] = tested_state
+    st.session_state["tested_artifacts"] = []
+else:
+    tested_state = st.session_state["tested_state"]
+
+if "tested_fetch" not in st.session_state:
+    tested_fetch = TestedFetch()
+    st.session_state["tested_fetch"] = tested_fetch
+else:
+    tested_fetch = st.session_state["tested_fetch"]
 fetch_button = tested_fetch.render_component()
 
 render_list()

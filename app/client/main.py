@@ -11,10 +11,8 @@ st.set_page_config(page_title="i-Scope", layout="wide")
 NAV_TITLE = "I-Scope"
 
 PAGE_LABELS = {
-    "analysis": "Error Analysis",
-    "test_execution": "Test Execution",
-    "case_search": "Case Search",
-    "tested": "Tested iFlows",
+    "artifact_search": "Artifact Search",
+    "tested_list": "Tested Artifacts",
 }
 
 
@@ -22,6 +20,8 @@ def load_pages():
     pages_dir = Path(__file__).parent / "pages"
     page_list = []
     for page_path in sorted(pages_dir.glob("*.py")):
+        if "__init__.py" in page_path.name:
+            continue
         stem = page_path.stem
         title = PAGE_LABELS.get(stem, stem.replace("_", " ").title())
         page_list.append(st.Page(str(page_path.resolve()), title=title))
