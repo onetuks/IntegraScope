@@ -9,7 +9,8 @@ from app.client.api.api_client import post
 from app.client.utils.utils import format_duration
 
 
-def fetch_analysis(message_guid: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+def fetch_analysis(message_guid: str) -> Tuple[
+    Optional[Dict[str, Any]], Optional[str]]:
     if not message_guid:
         return None, "Artifact ID가 필요합니다."
     try:
@@ -41,23 +42,35 @@ def render_overview(payload: Dict[str, Any]):
 
         st.badge(payload.get("artifact_type"))
         meta_cols = st.columns([1, 1])
-        meta_cols[0].text_input(label="Artifact Id", value=payload.get("artifact_id", "-"), disabled=False)
-        meta_cols[1].text_input(label="Package Id", value=payload.get("package_id", "-"), disabled=False)
-        meta_cols[0].text_input(label="Message GUID", value=payload.get("message_guid", "-"), disabled=False)
+        meta_cols[0].text_input(label="Artifact Id",
+                                value=payload.get("artifact_id", "-"),
+                                disabled=False)
+        meta_cols[1].text_input(label="Package Id",
+                                value=payload.get("package_id", "-"),
+                                disabled=False)
+        meta_cols[0].text_input(label="Message GUID",
+                                value=payload.get("message_guid", "-"),
+                                disabled=False)
 
         st.divider()
 
         info_cols = st.columns([6, 1])
-        info_cols[0].text_input(label="Exception", value=payload.get("exception", "-"), disabled=False)
+        info_cols[0].text_input(label="Exception",
+                                value=payload.get("exception", "-"),
+                                disabled=False)
         info_cols[1].caption("Status Code")
-        info_cols[1].container().badge(str(payload.get("status_code", "-")), width="stretch", color="red")
+        info_cols[1].container().badge(str(payload.get("status_code", "-")),
+                                       width="stretch", color="red")
         info_cols[1].caption("Duration")
-        info_cols[1].badge(format_duration(payload.get("log_start", "-"), payload.get("log_end", "-")))
+        info_cols[1].badge(format_duration(payload.get("log_start", "-"),
+                                           payload.get("log_end", "-")))
         time_cols = info_cols[0].columns([1, 1])
         time_cols[0].caption("Log Start")
-        time_cols[0].badge(f"{format_datetime(payload.get('log_start'))}", color="green")
+        time_cols[0].badge(f"{format_datetime(payload.get('log_start'))}",
+                           color="green")
         time_cols[1].caption("Log End")
-        time_cols[1].badge(f"{format_datetime(payload.get('log_end'))}", color="green")
+        time_cols[1].badge(f"{format_datetime(payload.get('log_end'))}",
+                           color="green")
 
         st.markdown("**Error Log**")
         st.code(payload.get("origin_log", ""), language="bash")
@@ -71,12 +84,15 @@ def render_analysis(analysis: Dict[str, Any]):
 
         classification = analysis.get("classification") or {}
         class_cols = st.columns([1, 1])
-        print(classification.get("category"))
-        for category in classification.get("category"):
-            class_cols[0].badge(category, color="orange")
+        if classification.get("category"):
+            for category in classification.get("category"):
+                class_cols[0].badge(category, color="orange")
+        else:
+            class_cols[0].badge("-", color="orange")
         # class_cols[0].badge(classification.get("category", "-"), color="orange")
         class_cols[1].markdown("**Confidence**")
-        class_cols[1].badge(f"{classification.get('confidence') * 100:.0f}%", color="blue")
+        class_cols[1].badge(f"{classification.get('confidence') * 100:.0f}%",
+                            color="blue")
 
         st.markdown("**Top Causes**")
         top_causes: List[Dict[str, Any]] = analysis.get("top_causes") or []
@@ -138,7 +154,8 @@ def render_solutions(solution: Dict[str, Any]):
                 if extra_data:
                     st.markdown("**추가 필요 데이터**")
                     for item in extra_data:
-                        st.write(f"- {item.get('data', '-')}: {item.get('reason', '-')}")
+                        st.write(
+                            f"- {item.get('data', '-')}: {item.get('reason', '-')}")
                         st.caption(f"  확보 방법: {item.get('how', '-')}")
 
 
@@ -147,10 +164,12 @@ def render_data_fetch() -> Dict[str, Any]:
 
     fetch_cols = st.columns([3, 1])
     message_guid = fetch_cols[0].text_input(label="Message Guid",
-                                            value=st.session_state.get("message_guid"),
+                                            value=st.session_state.get(
+                                                "message_guid"),
                                             placeholder="예) INTEGRA_SCOPE_TEST")
     fetch_cols[1].container(height=10, border=False)
-    fetch_clicked = fetch_cols[1].button("Analyze & Solution", type="primary", use_container_width=True)
+    fetch_clicked = fetch_cols[1].button("Analyze & Solution", type="primary",
+                                         use_container_width=True)
 
     if fetch_clicked:
         with st.spinner("분석 결과를 불러오는중..."):
@@ -168,6 +187,7 @@ def render_data_fetch() -> Dict[str, Any]:
         st.stop()
 
     return _payload
+
 
 st.title("Error Analysis")
 st.caption("iFlow 장애 로그를 받아 분석/해결 가이드를 한눈에 확인하세요.")
@@ -193,7 +213,7 @@ st.markdown(
 
 payload: Dict[str, Any] = render_data_fetch()
 render_overview(payload)
-render_analysis(payload.get("") or {})
+render_analysis(payload.get("analysis") or {})
 render_solutions(payload.get("solution") or {})
 
 with st.expander("Raw payload 보기"):
