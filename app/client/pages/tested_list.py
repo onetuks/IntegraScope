@@ -2,6 +2,7 @@ import streamlit as st
 
 from app.client.components.tested_artifact import TestedArtifact
 from app.client.components.tested_fetch import TestedFetch
+from app.client.pages import fetch_tested
 
 
 def render_list():
