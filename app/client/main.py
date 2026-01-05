@@ -11,21 +11,25 @@ st.set_page_config(page_title="i-Scope", layout="wide")
 NAV_TITLE = "I-Scope"
 
 PAGE_LABELS = {
+    "dashboard": "Dashboard",
     "artifact_search": "Artifact Search",
-    "tested_list": "Tested Artifacts",
+    "tested_list": "Tested List",
     "analysis": "Error Analysis",
 }
 
 
 def load_pages():
     pages_dir = Path(__file__).parent / "pages"
-    page_list = []
-    for page_path in sorted(pages_dir.glob("*.py")):
+    page_list = [None] * (len(PAGE_LABELS) - 1)
+    for page_path in pages_dir.glob("*.py"):
         if "__init__.py" in page_path.name:
+            continue
+        if "analysis.py" in page_path.name:
             continue
         stem = page_path.stem
         title = PAGE_LABELS.get(stem, stem.replace("_", " ").title())
-        page_list.append(
+        index = list(PAGE_LABELS.keys()).index(stem)
+        page_list[index] = (
             st.Page(
                 str(page_path.resolve()),
                 title=title,
