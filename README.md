@@ -119,7 +119,7 @@ uvicorn app.server.main:app --reload --host 0.0.0.0 --port 8000
 pip install -r app/client/requirements.txt
 
 # 4) Streamlit 실행 (기본: http://localhost:8501)
-streamlit run app/client/main.py
+streamlit run app/client/run.py
 ```
 - 프런트엔드가 호출하는 API 베이스 URL은 `app/client/api/api_client.py`의 `API_BASE_URL`을 수정해 조정할 수 있습니다.
 

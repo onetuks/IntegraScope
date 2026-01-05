@@ -1,9 +1,13 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Optional
 
 from pydantic import Field, FieldValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
+BASE_DIR = Path(__file__).resolve().parents[3]
+ENV_PATH = BASE_DIR / ".env"
 
 class Config(BaseSettings):
     """Application configuration loaded from environment or .env."""
@@ -23,7 +27,7 @@ class Config(BaseSettings):
     log_level: str = Field(default="INFO")
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(ENV_PATH),
         env_file_encoding="utf-8",
         extra="ignore",
     )
