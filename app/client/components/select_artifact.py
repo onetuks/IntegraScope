@@ -18,7 +18,6 @@ def _fetch_artifact_list(package_id: str) -> List[str]:
 def reset_results() -> None:
     st.session_state["searched_artifacts"] = []
     st.session_state["searched_error"] = None
-    st.session_state["searched_has_fetched"] = False
 
 
 def load_artifacts(package_id: Optional[str]) -> None:

@@ -1,6 +1,6 @@
 from datetime import timedelta, datetime
 from enum import Enum
-from typing import Tuple, Optional
+from typing import Optional
 
 import streamlit as st
 
@@ -58,6 +58,10 @@ class TestedFetch:
     @property
     def status(self):
         return self._status
+
+    def validate_time(self):
+        if self._stored_start >= self._stored_end:
+            raise ValueError("시작 시간이 종료 시간보다 같거나 늦을 수 없습니다.")
 
     def render_component(self):
         cols = st.columns([1, 1, 0.5, 0.5])
