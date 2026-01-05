@@ -1,8 +1,7 @@
-from typing import List, Optional
-
 import streamlit as st
 
-from app.client.api.api_client import get
+from app.client.components.select_artifact import render_artifact_select_box
+from app.client.components.select_package import render_package_select_box
 from app.client.components.tested_artifact import TestedArtifact
 from app.client.components.tested_fetch import TestedFetch
 from app.client.pages import fetch_tested
@@ -21,12 +20,6 @@ def init_session_state() -> None:
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
-
-
-def reset_results() -> None:
-    st.session_state["searched_artifacts"] = []
-    st.session_state["searched_error"] = None
-    st.session_state["searched_has_fetched"] = False
 
 
 def render_list(artifacts):
@@ -48,100 +41,11 @@ st.title("Artifact Search")
 st.caption("검색한 Artifact 테스트 실행 결과 목록")
 
 init_session_state()
-
-
-def fetch_package_list() -> List[str]:
-    try:
-        response = get("/api/packages")
-        response.raise_for_status()
-        return response.json()
-    except Exception as exc:
-        return []
-
-
-def fetch_artifact_list(package_id: str) -> List[str]:
-    try:
-        response = get(f"/api/artifacts?package_id={package_id}")
-        response.raise_for_status()
-        return response.json()
-    except Exception as exc:
-        return []
-
-
-def load_packages(force: bool = False) -> None:
-    """Fetch packages once on first load or when refresh is requested."""
-    if not force and st.session_state["package_list"]:
-        return
-
-    with st.spinner("패키지 목록을 불러오는 중..."):
-        packages = fetch_package_list()
-
-    st.session_state["package_list"] = packages
-    st.session_state["selected_package"] = packages[0] if packages else None
-    st.session_state["artifact_list"] = []
-    st.session_state["selected_artifact"] = None
-    reset_results()
-    if st.session_state["selected_package"]:
-        load_artifacts(st.session_state["selected_package"])
-
-
-def load_artifacts(package_id: Optional[str]) -> None:
-    if not package_id:
-        st.session_state["artifact_list"] = []
-        st.session_state["selected_artifact"] = None
-        reset_results()
-        return
-
-    with st.spinner("Artifact 목록을 불러오는 중..."):
-        artifacts = fetch_artifact_list(package_id)
-
-    st.session_state["artifact_list"] = artifacts
-    st.session_state["selected_artifact"] = artifacts[0] if artifacts else None
-    reset_results()
-
-
-load_packages()
-
 cols = st.columns([1.25, 1.25, 0.5])
-cols[2].container(height=10, border=False)
-if cols[2].button("패키지 목록 새로고침", width="stretch"):
-    load_packages(force=True)
+render_package_select_box(cols)
+render_artifact_select_box(cols)
 
-if not st.session_state["package_list"]:
-    st.info("패키지 목록이 없습니다. 새로고침을 눌러 재조회해주세요.")
-    st.stop()
 
-selected_pkg = st.session_state["selected_package"]
-pkg_index = 0
-if selected_pkg in st.session_state["package_list"]:
-    pkg_index = st.session_state["package_list"].index(selected_pkg)
-package_id = cols[0].selectbox(
-    label="Package Id",
-    options=st.session_state["package_list"],
-    index=pkg_index,
-)
-
-if package_id != st.session_state["selected_package"]:
-    st.session_state["selected_package"] = package_id
-    load_artifacts(package_id)
-
-artifact_options = st.session_state["artifact_list"]
-if artifact_options:
-    art_index = 0
-    if st.session_state["selected_artifact"] in artifact_options:
-        art_index = artifact_options.index(
-            st.session_state["selected_artifact"])
-    previous_artifact = st.session_state["selected_artifact"]
-    artifact_id = cols[1].selectbox(
-        label="Artifact Id",
-        options=artifact_options,
-        index=art_index,
-    )
-    if artifact_id != previous_artifact:
-        reset_results()
-    st.session_state["selected_artifact"] = artifact_id
-else:
-    st.info("선택한 패키지의 Artifact가 없습니다.")
 
 if "searched_fetch" not in st.session_state:
     searched_fetch = TestedFetch()
