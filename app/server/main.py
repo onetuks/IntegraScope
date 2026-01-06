@@ -106,19 +106,22 @@ class TestedResponse(BaseModel):
 
 @app.get("/api/tested", response_model=TestedResponse)
 async def tested(
+        artifact_id: str = None,
         log_start: datetime = datetime.now() - timedelta(hours=2),
         log_end: datetime = datetime.now(),
         status: str = "ALL"
 ):
-    artifacts = TestedMplClient().get_tested_artifacts(log_start, log_end,
-                                                       status)
-    return TestedResponse(tested_artifacts=artifacts)
+    artifacts_ = TestedMplClient().get_tested_artifacts(artifact_id,
+                                                        log_start,
+                                                        log_end,
+                                                        status)
+    return TestedResponse(tested_artifacts=artifacts_)
 
 
 @app.get("/api/packages")
 async def packages():
-    packages = ObjectSearch().get_package_list()
-    return packages
+    packages_ = ObjectSearch().get_package_list()
+    return packages_
 
 
 @app.get("/api/artifacts")

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 from urllib.parse import quote
 
 import requests
@@ -37,6 +37,7 @@ class TestedMplClient:
         self._oauth2_client = OAuth2Client(self._session)
 
     def get_tested_artifacts(self,
+                             artifact_id: str,
                              log_start: datetime,
                              log_end: datetime,
                              status: str) -> List[TestedMplDto]:
@@ -55,7 +56,8 @@ class TestedMplClient:
             url=f"{self._URL}?$filter=" +
                 f"LogStart gt datetime'{gmt_log_start.strftime(datetime_format)}'" +
                 f" and LogEnd lt datetime'{gmt_log_end.strftime(datetime_format)}'" +
-                (f" and Status eq '{status}'" if status is not None and status != 'ALL' else ""),
+                (f" and Status eq '{status}'" if status is not None and status != 'ALL' else "") +
+                (f" and IntegrationFlowName eq '{artifact_id}'" if artifact_id is not None else ""),
             headers={
                 'Accept': 'application/json',
                 'Authorization': f"Bearer {self._oauth2_client.get_access_token()}"
