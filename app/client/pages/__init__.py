@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Tuple, Optional, List, Dict, Any
 
 from app.client.api.api_client import get
-from app.client.components.tested_fetch import TestStatus
+from app.client.components.fetch_option import TestStatus
 
 
 def fetch_tested(

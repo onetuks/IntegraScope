@@ -9,13 +9,28 @@ from app.client.api.api_client import post
 from app.client.utils.utils import format_duration
 
 
-def fetch_analysis(message_guid: str) -> Tuple[
+def _fetch_resolve_with_analysis(message_guid: str) -> Tuple[
     Optional[Dict[str, Any]], Optional[str]]:
     if not message_guid:
         return None, "Artifact ID가 필요합니다."
     try:
         response: Response = post(
-            uri="/api/analysis",
+            uri="/api/resolve-with-analysis",
+            body={"message_guid": message_guid},
+            timeout=180
+        )
+        return response.json(), None
+    except Exception as exc:
+        return None, str(exc)
+
+
+def _fetch_error_log(message_guid: str) -> Tuple[
+    Optional[Dict[str, Any]], Optional[str]]:
+    if not message_guid:
+        return None, "Artifact ID가 필요합니다."
+    try:
+        response: Response = post(
+            uri="/api/error-log",
             body={"message_guid": message_guid},
             timeout=180
         )
@@ -36,47 +51,67 @@ def format_datetime(value: Optional[str]) -> str:
     return dt_value.strftime("%Y-%m-%d %H:%M:%S %Z") if dt_value else "-"
 
 
-def render_overview(payload: Dict[str, Any]):
-    with st.container(border=True):
-        st.subheader("Artifact Context")
+def render_overview(overview: Dict[str, Any], message_guid_: str):
+    if not overview:
+        if st.button("Fetch Error Overview", width="stretch"):
+            with st.spinner("오류 정보를 불러오는 중"):
+                _data, _error = _fetch_error_log(message_guid=message_guid_)
+            if _data:
+                overview = _data
+                st.success("오류 정보 조회에 성공했습니다")
 
-        st.badge(payload.get("artifact_type"))
-        meta_cols = st.columns([1, 1])
-        meta_cols[0].text_input(label="Artifact Id",
-                                value=payload.get("artifact_id", "-"),
-                                disabled=False)
-        meta_cols[1].text_input(label="Package Id",
-                                value=payload.get("package_id", "-"),
-                                disabled=False)
-        meta_cols[0].text_input(label="Message GUID",
-                                value=payload.get("message_guid", "-"),
-                                disabled=False)
+                with st.container(border=True):
+                    st.subheader("Artifact Context")
 
-        st.divider()
+                    st.badge(overview.get("artifact_type"))
+                    meta_cols = st.columns([1, 1])
+                    meta_cols[0].text_input(label="Artifact Id",
+                                            value=overview.get("artifact_id",
+                                                               "-"),
+                                            disabled=False)
+                    meta_cols[1].text_input(label="Package Id",
+                                            value=overview.get("package_id",
+                                                               "-"),
+                                            disabled=False)
+                    meta_cols[0].text_input(label="Message GUID",
+                                            value=overview.get("message_guid",
+                                                               "-"),
+                                            disabled=False)
 
-        info_cols = st.columns([6, 1])
-        info_cols[0].text_input(label="Exception",
-                                value=payload.get("exception", "-"),
-                                disabled=False)
-        info_cols[1].caption("Status Code")
-        info_cols[1].container().badge(str(payload.get("status_code", "-")),
-                                       width="stretch", color="red")
-        info_cols[1].caption("Duration")
-        info_cols[1].badge(format_duration(payload.get("log_start", "-"),
-                                           payload.get("log_end", "-")))
-        time_cols = info_cols[0].columns([1, 1])
-        time_cols[0].caption("Log Start")
-        time_cols[0].badge(f"{format_datetime(payload.get('log_start'))}",
-                           color="green")
-        time_cols[1].caption("Log End")
-        time_cols[1].badge(f"{format_datetime(payload.get('log_end'))}",
-                           color="green")
+                    st.divider()
 
-        st.markdown("**Error Log**")
-        st.code(payload.get("origin_log", ""), language="bash")
+                    info_cols = st.columns([6, 1])
+                    info_cols[0].text_input(label="Exception",
+                                            value=overview.get("exception",
+                                                               "-"),
+                                            disabled=False)
+                    info_cols[1].caption("Status Code")
+                    info_cols[1].container().badge(
+                        str(overview.get("status_code", "-")),
+                        width="stretch", color="red")
+                    info_cols[1].caption("Duration")
+                    info_cols[1].badge(
+                        format_duration(overview.get("log_start", "-"),
+                                        overview.get("log_end", "-")))
+                    time_cols = info_cols[0].columns([1, 1])
+                    time_cols[0].caption("Log Start")
+                    time_cols[0].badge(
+                        f"{format_datetime(overview.get('log_start'))}",
+                        color="green")
+                    time_cols[1].caption("Log End")
+                    time_cols[1].badge(
+                        f"{format_datetime(overview.get('log_end'))}",
+                        color="green")
+
+                    st.markdown("**Error Log**")
+                    st.code(overview.get("origin_log", ""), language="bash")
+            else:
+                st.error(f"오류 정보 조회 실패: {_error}")
 
 
 def render_analysis(analysis: Dict[str, Any]):
+    if not analysis:
+        return
     with st.container(border=True):
         st.subheader("Analysis")
         st.markdown("**Summary**")
@@ -125,6 +160,8 @@ def render_analysis(analysis: Dict[str, Any]):
 
 
 def render_solutions(solution: Dict[str, Any]):
+    if not solution:
+        return
     with st.container(border=True):
         st.subheader("Solutions")
         solutions: List[Dict[str, Any]] = solution.get("solutions") or []
@@ -159,9 +196,7 @@ def render_solutions(solution: Dict[str, Any]):
                         st.caption(f"  확보 방법: {item.get('how', '-')}")
 
 
-def render_data_fetch() -> Dict[str, Any]:
-    _payload: Dict[str, Any] = {}
-
+def render_data_fetch():
     fetch_cols = st.columns([3, 1])
     message_guid = fetch_cols[0].text_input(label="Message Guid",
                                             value=st.session_state.get(
@@ -171,22 +206,7 @@ def render_data_fetch() -> Dict[str, Any]:
     fetch_clicked = fetch_cols[1].button("Analyze & Solution", type="primary",
                                          use_container_width=True)
 
-    if fetch_clicked:
-        with st.spinner("분석 결과를 불러오는중..."):
-            data, error = fetch_analysis(message_guid.strip())
-        if data:
-            _payload = data
-            st.success("오류 분석에 성공했습니다")
-        else:
-            st.error(f"오류 분석 실패: {error}")
-
-    st.divider()
-
-    if not _payload:
-        st.info("분석 데이터를 불러와 주세요.")
-        st.stop()
-
-    return _payload
+    return message_guid, fetch_clicked
 
 
 st.title("Error Analysis")
@@ -211,10 +231,24 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-payload: Dict[str, Any] = render_data_fetch()
-render_overview(payload)
+payload: Dict[str, Any] = {}
+message_guid, fetch_clicked = render_data_fetch()
+
+if fetch_clicked:
+    with st.spinner("분석 결과를 불러오는중..."):
+        data, error = _fetch_resolve_with_analysis(message_guid.strip())
+    if data:
+        payload = data
+        st.success("오류 분석에 성공했습니다")
+    else:
+        st.error(f"오류 분석 실패: {error}")
+
+st.divider()
+
+render_overview(payload, message_guid)
 render_analysis(payload.get("analysis") or {})
 render_solutions(payload.get("solution") or {})
 
-with st.expander("Raw payload 보기"):
-    st.json(payload)
+if payload.get("solution"):
+    with st.expander("Raw payload 보기"):
+        st.json(payload)

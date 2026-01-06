@@ -1,6 +1,6 @@
 import streamlit as st
 
-from app.client.components.tested_fetch import TestedFetch
+from app.client.components.fetch_option import TestedFetch
 from app.client.components.tested_list import render_list
 from app.client.exception.SessionStateError import SessionStateInfo, \
     SessionStateError, SessionStateWarning
@@ -12,6 +12,7 @@ def _init_session_state() -> None:
         "tested_artifacts": [],
         "tested_error": None,
         "tested_fetch": TestedFetch(),
+        "tested_has_run": False,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -32,6 +33,7 @@ def _validate_tested_artifact():
 
 st.title("Tested Artifacts")
 st.caption("최근 테스트된 Artifact 실행 결과 목록")
+_init_session_state()
 tested_fetch = st.session_state["tested_fetch"]
 fetch_button = tested_fetch.render_component()
 
@@ -45,13 +47,19 @@ if fetch_button:
                 tested_fetch.stored_end,
                 tested_fetch.status)
 
-        st.session_state["tested_artifacts"] = artifacts
+        st.session_state["tested_artifacts"] = artifacts or []
         st.session_state["tested_error"] = error
+        st.session_state["tested_has_run"] = True
+    except ValueError as e:
+        st.session_state["tested_artifacts"] = []
+        st.session_state["tested_error"] = str(e)
+        st.session_state["tested_has_run"] = True
 
+if st.session_state["tested_has_run"]:
+    try:
         _validate_error_state()
         _validate_tested_artifact()
-
-        render_list(artifacts)
+        render_list(st.session_state["tested_artifacts"])
     except SessionStateWarning as e:
         st.warning(str(e))
     except SessionStateError as e:
@@ -60,7 +68,3 @@ if fetch_button:
     except SessionStateInfo as e:
         st.info(str(e))
         st.stop()
-    except ValueError as e:
-        st.error(str(e))
-        st.session_state["tested_artifacts"] = []
-        st.session_state["tested_error"] = str(e)

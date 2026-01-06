@@ -20,16 +20,13 @@ PAGE_LABELS = {
 
 def load_pages():
     pages_dir = Path(__file__).parent / "pages"
-    page_list = [None] * (len(PAGE_LABELS) - 1)
+    page_list = []
     for page_path in pages_dir.glob("*.py"):
         if "__init__.py" in page_path.name:
             continue
-        if "analysis.py" in page_path.name:
-            continue
         stem = page_path.stem
         title = PAGE_LABELS.get(stem, stem.replace("_", " ").title())
-        index = list(PAGE_LABELS.keys()).index(stem)
-        page_list[index] = (
+        page_list.append(
             st.Page(
                 str(page_path.resolve()),
                 title=title,

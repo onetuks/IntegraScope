@@ -2,7 +2,7 @@ from typing import List, Any
 
 import streamlit as st
 
-from app.client.components.tested_artifact import TestedArtifact
+from app.client.components.tested_item import TestedArtifact
 
 
 def render_list(artifacts: List[Any]):

@@ -57,8 +57,7 @@ class TestedArtifact:
                 use_container_width=True,
                 type="primary",
                 key=f"analyze_btn_{msg_guid}",
-                disabled=self._item.get("status") not in ("FAILED",
-                                                          "ESCALATED"),
+                disabled=self._item.get("status") not in ("FAILED", "ESCALATED")
         ):
             st.session_state["message_guid"] = msg_guid
             st.switch_page("pages/analysis.py")
