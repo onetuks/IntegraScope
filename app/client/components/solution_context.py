@@ -5,13 +5,13 @@ import streamlit as st
 
 class SolutionContext:
 
-    def __init__(self, data: Dict[str, Any]):
-        self.data = data
+    def __init__(self, solution: Dict[str, Any]):
+        self.solution = solution
 
     def render_component(self):
         with st.container(border=True):
             st.subheader("Solutions")
-            solutions: List[Dict[str, Any]] = self.data.get("solutions") or []
+            solutions: List[Dict[str, Any]] = self.solution.get("solutions") or []
             if not solutions:
                 st.info("제안된 해결책이 없습니다.")
                 return

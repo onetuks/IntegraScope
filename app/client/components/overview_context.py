@@ -28,7 +28,7 @@ class ArtifactContext:
         with st.container(border=True):
             st.subheader("Artifact Context")
 
-            st.badge(self.data.get("artifact_type"))
+            st.badge(self.data.get("artifact_type", "-"))
             meta_cols = st.columns([1, 1])
             meta_cols[0].text_input(label="Artifact Id",
                                     value=self.data.get("artifact_id",

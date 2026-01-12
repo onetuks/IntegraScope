@@ -5,12 +5,12 @@ from requests import Response
 
 from app.client.api.api_client import post
 from app.client.components.analysis_context import AnalysisContext
-from app.client.components.artifact_context import ArtifactContext
+from app.client.components.overview_context import ArtifactContext
 from app.client.components.solution_context import SolutionContext
-
 
 _ANALYSIS_STATE_DEFAULTS = {
     "data": {},
+    "analysis_and_resolve": False,
     "overview_fetched": False,
     "analysis_fetched": False,
     "solution_fetched": False,
@@ -123,6 +123,26 @@ def _fetch_solution(message_guid_: str, data_: Dict[str, Any]) -> Tuple[
         return None, str(exc)
 
 
+def _current_step() -> str:
+    if st.session_state["analysis_and_resolve"]:
+        return "all"
+    elif (not st.session_state["overview_fetched"]
+          and not st.session_state["analysis_fetched"]
+          and not st.session_state["solution_fetched"]
+    ):
+        return "overview"
+    elif (st.session_state["overview_fetched"]
+          and not st.session_state["analysis_fetched"]
+          and not st.session_state["solution_fetched"]
+    ):
+        return "analysis"
+    elif (st.session_state["analysis_fetched"]
+          and not st.session_state["solution_fetched"]
+    ):
+        return "solution"
+    return "done"
+
+
 def _bind_overview_data(overview: Dict[str, Any]):
     st.session_state["overview_fetched"] = True
     data["artifact_id"] = overview.get("artifact_id")
@@ -139,25 +159,19 @@ def _bind_overview_data(overview: Dict[str, Any]):
 
 def _bind_analysis_data(analysis: Dict[str, Any]):
     st.session_state["analysis_fetched"] = True
-    data["message_guid"] = analysis.get("message_guid")
-    data["analysis"] = analysis.get("analysis")
+    data["analysis"] = analysis
 
 
 def _bind_solution_data(solution: Dict[str, Any]):
     st.session_state["solution_fetched"] = True
-    data["message_guid"] = solution.get("message_guid")
-    data["solution"] = solution.get("solution")
+    data["solution"] = solution
 
 
 def _bind_resolve_with_analysis_data(full_data: Dict[str, Any]):
+    st.session_state["analysis_and_resolve"] = True
     _bind_overview_data(full_data)
     data["analysis"] = full_data.get("analysis")
     data["solution"] = full_data.get("solution")
-
-
-def _is_first_render():
-    return not st.session_state["overview_fetched"] and not st.session_state[
-        "analysis_fetched"] and not st.session_state["solution_fetched"]
 
 
 def render_data_fetch():
@@ -174,6 +188,7 @@ def render_data_fetch():
     if fetch_cols[2].button("Clear", type="secondary",
                             use_container_width=True):
         st.session_state["data"] = {}
+        _reset_analysis_state()
         st.rerun()
 
     if fetch_clicked:
@@ -194,8 +209,9 @@ def render_overview():
         ArtifactContext(data).render_component()
         return
 
-    if _is_first_render() and st.button("Fetch Error Overview",
-                                        width="stretch"):
+    if _current_step() == "all" or (
+            _current_step() == "overview" and st.button("Fetch Error Overview",
+                                                        width="stretch")):
         with st.spinner("오류 정보를 불러오는 중"):
             _data, _error = _fetch_error_log(message_guid_=message_guid)
         if _data:
@@ -211,18 +227,20 @@ def render_analysis():
         return st.session_state["analysis_fetched"]
 
     if _showable():
-        AnalysisContext(data).render_component()
+        AnalysisContext(data.get("analysis")).render_component()
         return
 
-    if not _is_first_render() and st.button("Request Error Analysis",
-                                            width="stretch"):
+    if _current_step() == "all" or (_current_step() == "analysis" and st.button(
+            "Request Error Analysis",
+            width="stretch")):
         with st.spinner("오류 분석하는 중"):
             _data, _error = _fetch_analysis(message_guid_=message_guid,
                                             data_=data)
         if _data:
-            _bind_analysis_data(_data)
+            analysis = _data.get("analysis")
+            _bind_analysis_data(analysis)
             st.success("오류 분석에 성공했습니다")
-            AnalysisContext(data).render_component()
+            AnalysisContext(analysis).render_component()
         else:
             st.error(f"오류 분석 실패: {_error}")
 
@@ -232,18 +250,20 @@ def render_solutions():
         return st.session_state["solution_fetched"]
 
     if _showable():
-        SolutionContext(data).render_component()
+        SolutionContext(data.get("solution")).render_component()
         return
 
-    if not _is_first_render() and st.button("Request Error Solution",
-                                            width="stretch"):
+    if _current_step() == "all" or (_current_step() == "solution" and st.button(
+            "Request Error Solution",
+            width="stretch")):
         with st.spinner("오류 해결책 도출하는 중"):
             _data, _error = _fetch_solution(message_guid_=message_guid,
                                             data_=data)
         if _data:
-            _bind_solution_data(_data)
+            solution = _data.get("solution")
+            _bind_solution_data(solution)
             st.success("오류 해결책 도출에 성공했습니다")
-            SolutionContext(data).render_component()
+            SolutionContext(solution).render_component()
         else:
             st.error(f"오류 해결책 도출 실패: {_error}")
 

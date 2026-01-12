@@ -5,16 +5,16 @@ import streamlit as st
 
 class AnalysisContext:
 
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, analysis):
+        self.analysis = analysis
 
     def render_component(self):
         with st.container(border=True):
             st.subheader("Analysis")
             st.markdown("**Summary**")
-            st.markdown(f"{self.data.get('summary', '-')}")
+            st.markdown(f"{self.analysis.get('summary', '-')}")
 
-            classification = self.data.get("classification") or {}
+            classification = self.analysis.get("classification") or {}
             class_cols = st.columns([1, 1])
             if classification.get("category"):
                 for category in classification.get("category", []):
@@ -27,7 +27,7 @@ class AnalysisContext:
                                 color="blue")
 
             st.markdown("**Top Causes**")
-            top_causes: List[Dict[str, Any]] = self.data.get("top_causes") or []
+            top_causes: List[Dict[str, Any]] = self.analysis.get("top_causes") or []
             if not top_causes:
                 st.info("원인 후보가 아직 없습니다.")
             for cause in top_causes:
@@ -45,11 +45,11 @@ class AnalysisContext:
                             cols[1].write(f"- {item}")
 
             st.markdown("**Questions for you**")
-            for question in self.data.get("question_for_user", []):
+            for question in self.analysis.get("question_for_user", []):
                 st.write(f"- {question}")
 
             st.markdown("**Additional data needed**")
-            for item in self.data.get("additional_data_needed", []):
+            for item in self.analysis.get("additional_data_needed", []):
                 with st.container(border=True):
                     st.markdown(f"**{item.get('data', '-')}**")
                     st.write(f"이유: {item.get('reason', '-')}")
