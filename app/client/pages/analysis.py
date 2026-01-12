@@ -9,17 +9,34 @@ from app.client.components.artifact_context import ArtifactContext
 from app.client.components.solution_context import SolutionContext
 
 
+_ANALYSIS_STATE_DEFAULTS = {
+    "data": {},
+    "overview_fetched": False,
+    "analysis_fetched": False,
+    "solution_fetched": False,
+}
+
+
+def _reset_analysis_state() -> None:
+    for key, value in _ANALYSIS_STATE_DEFAULTS.items():
+        st.session_state[key] = value
+
+
 def _init_session_state() -> None:
     defaults = {
-        "data": {},
         "message_guid": None,
-        "overview_fetched": False,
-        "analysis_fetched": False,
-        "solution_fetched": False,
+        "analysis_last_message_guid": None,
     }
+    defaults.update(_ANALYSIS_STATE_DEFAULTS)
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+
+    current_guid = st.session_state.get("message_guid")
+    last_guid = st.session_state.get("analysis_last_message_guid")
+    if current_guid != last_guid:
+        _reset_analysis_state()
+        st.session_state["analysis_last_message_guid"] = current_guid
 
 
 def _fetch_resolve_with_analysis(message_guid_: str) -> Tuple[
