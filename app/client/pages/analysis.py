@@ -1,22 +1,52 @@
-from datetime import datetime
-from email.utils import parsedate_to_datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import streamlit as st
 from requests import Response
 
 from app.client.api.api_client import post
-from app.client.utils.utils import format_duration
+from app.client.components.analysis_context import AnalysisContext
+from app.client.components.overview_context import ArtifactContext
+from app.client.components.solution_context import SolutionContext
+
+_ANALYSIS_STATE_DEFAULTS = {
+    "data": {},
+    "analysis_and_resolve": False,
+    "overview_fetched": False,
+    "analysis_fetched": False,
+    "solution_fetched": False,
+}
 
 
-def _fetch_resolve_with_analysis(message_guid: str) -> Tuple[
+def _reset_analysis_state() -> None:
+    for key, value in _ANALYSIS_STATE_DEFAULTS.items():
+        st.session_state[key] = value
+
+
+def _init_session_state() -> None:
+    defaults = {
+        "message_guid": None,
+        "analysis_last_message_guid": None,
+    }
+    defaults.update(_ANALYSIS_STATE_DEFAULTS)
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+    current_guid = st.session_state.get("message_guid")
+    last_guid = st.session_state.get("analysis_last_message_guid")
+    if current_guid != last_guid:
+        _reset_analysis_state()
+        st.session_state["analysis_last_message_guid"] = current_guid
+
+
+def _fetch_resolve_with_analysis(message_guid_: str) -> Tuple[
     Optional[Dict[str, Any]], Optional[str]]:
-    if not message_guid:
+    if not message_guid_:
         return None, "Artifact ID가 필요합니다."
     try:
         response: Response = post(
             uri="/api/resolve-with-analysis",
-            body={"message_guid": message_guid},
+            body={"message_guid": message_guid_},
             timeout=180
         )
         return response.json(), None
@@ -24,14 +54,14 @@ def _fetch_resolve_with_analysis(message_guid: str) -> Tuple[
         return None, str(exc)
 
 
-def _fetch_error_log(message_guid: str) -> Tuple[
+def _fetch_error_log(message_guid_: str) -> Tuple[
     Optional[Dict[str, Any]], Optional[str]]:
-    if not message_guid:
+    if not message_guid_:
         return None, "Artifact ID가 필요합니다."
     try:
         response: Response = post(
             uri="/api/error-log",
-            body={"message_guid": message_guid},
+            body={"message_guid": message_guid_},
             timeout=180
         )
         return response.json(), None
@@ -39,174 +69,203 @@ def _fetch_error_log(message_guid: str) -> Tuple[
         return None, str(exc)
 
 
-def parse_datetime(value: Optional[str]) -> Optional[datetime]:
+def _fetch_analysis(message_guid_: str, data_: Dict[str, Any]) -> Tuple[
+    Optional[Dict[str, Any]], Optional[str]]:
+    if not message_guid_:
+        return None, "Artifact ID가 필요합니다."
     try:
-        return parsedate_to_datetime(value) if value else None
-    except Exception:
-        return None
+        response: Response = post(
+            uri="/api/analysis",
+            body={
+                "message_guid": message_guid_,
+                "artifact_id": data_.get("artifact_id"),
+                "artifact_type": data_.get("artifact_type"),
+                "package_id": data_.get("package_id"),
+                "log_start": data_.get("log_start"),
+                "log_end": data_.get("log_end"),
+                "log": data_.get("log"),
+                "origin_log": data_.get("origin_log"),
+                "status_code": data_.get("status_code"),
+                "exception": data_.get("exception")
+            },
+            timeout=180
+        )
+        return response.json(), None
+    except Exception as exc:
+        return None, str(exc)
 
 
-def format_datetime(value: Optional[str]) -> str:
-    dt_value = parse_datetime(value)
-    return dt_value.strftime("%Y-%m-%d %H:%M:%S %Z") if dt_value else "-"
+def _fetch_solution(message_guid_: str, data_: Dict[str, Any]) -> Tuple[
+    Optional[Dict[str, Any]], Optional[str]
+]:
+    if not message_guid:
+        return None, "Artifact ID가 필요합니다."
+    try:
+        response: Response = post(
+            uri="/api/solutions",
+            body={
+                "message_guid": message_guid_,
+                "artifact_id": data_.get("artifact_id"),
+                "artifact_type": data_.get("artifact_type"),
+                "package_id": data_.get("package_id"),
+                "log_start": data_.get("log_start"),
+                "log_end": data_.get("log_end"),
+                "log": data_.get("log"),
+                "origin_log": data_.get("origin_log"),
+                "status_code": data_.get("status_code"),
+                "exception": data_.get("exception"),
+                "analysis": data_.get("analysis"),
+            },
+            timeout=180
+        )
+        return response.json(), None
+    except Exception as exc:
+        return None, str(exc)
 
 
-def render_overview(overview: Dict[str, Any], message_guid_: str):
-    if not overview:
-        if st.button("Fetch Error Overview", width="stretch"):
-            with st.spinner("오류 정보를 불러오는 중"):
-                _data, _error = _fetch_error_log(message_guid=message_guid_)
-            if _data:
-                overview = _data
-                st.success("오류 정보 조회에 성공했습니다")
-
-                with st.container(border=True):
-                    st.subheader("Artifact Context")
-
-                    st.badge(overview.get("artifact_type"))
-                    meta_cols = st.columns([1, 1])
-                    meta_cols[0].text_input(label="Artifact Id",
-                                            value=overview.get("artifact_id",
-                                                               "-"),
-                                            disabled=False)
-                    meta_cols[1].text_input(label="Package Id",
-                                            value=overview.get("package_id",
-                                                               "-"),
-                                            disabled=False)
-                    meta_cols[0].text_input(label="Message GUID",
-                                            value=overview.get("message_guid",
-                                                               "-"),
-                                            disabled=False)
-
-                    st.divider()
-
-                    info_cols = st.columns([6, 1])
-                    info_cols[0].text_input(label="Exception",
-                                            value=overview.get("exception",
-                                                               "-"),
-                                            disabled=False)
-                    info_cols[1].caption("Status Code")
-                    info_cols[1].container().badge(
-                        str(overview.get("status_code", "-")),
-                        width="stretch", color="red")
-                    info_cols[1].caption("Duration")
-                    info_cols[1].badge(
-                        format_duration(overview.get("log_start", "-"),
-                                        overview.get("log_end", "-")))
-                    time_cols = info_cols[0].columns([1, 1])
-                    time_cols[0].caption("Log Start")
-                    time_cols[0].badge(
-                        f"{format_datetime(overview.get('log_start'))}",
-                        color="green")
-                    time_cols[1].caption("Log End")
-                    time_cols[1].badge(
-                        f"{format_datetime(overview.get('log_end'))}",
-                        color="green")
-
-                    st.markdown("**Error Log**")
-                    st.code(overview.get("origin_log", ""), language="bash")
-            else:
-                st.error(f"오류 정보 조회 실패: {_error}")
+def _current_step() -> str:
+    if st.session_state["analysis_and_resolve"]:
+        return "all"
+    elif (not st.session_state["overview_fetched"]
+          and not st.session_state["analysis_fetched"]
+          and not st.session_state["solution_fetched"]
+    ):
+        return "overview"
+    elif (st.session_state["overview_fetched"]
+          and not st.session_state["analysis_fetched"]
+          and not st.session_state["solution_fetched"]
+    ):
+        return "analysis"
+    elif (st.session_state["analysis_fetched"]
+          and not st.session_state["solution_fetched"]
+    ):
+        return "solution"
+    return "done"
 
 
-def render_analysis(analysis: Dict[str, Any]):
-    if not analysis:
-        return
-    with st.container(border=True):
-        st.subheader("Analysis")
-        st.markdown("**Summary**")
-        st.markdown(f"{analysis.get('summary', '-')}")
-
-        classification = analysis.get("classification") or {}
-        class_cols = st.columns([1, 1])
-        if classification.get("category"):
-            for category in classification.get("category"):
-                class_cols[0].badge(category, color="orange")
-        else:
-            class_cols[0].badge("-", color="orange")
-        # class_cols[0].badge(classification.get("category", "-"), color="orange")
-        class_cols[1].markdown("**Confidence**")
-        class_cols[1].badge(f"{classification.get('confidence') * 100:.0f}%",
-                            color="blue")
-
-        st.markdown("**Top Causes**")
-        top_causes: List[Dict[str, Any]] = analysis.get("top_causes") or []
-        if not top_causes:
-            st.info("원인 후보가 아직 없습니다.")
-        for cause in top_causes:
-            with st.expander(cause.get("hypothesis", "원인"), expanded=False):
-                cols = st.columns(2)
-                evidence = cause.get("evidence") or []
-                if evidence:
-                    cols[0].markdown("**Evidence**")
-                    for item in evidence:
-                        cols[0].write(f"- {item}")
-                verification = cause.get("how_to_verify") or []
-                if verification:
-                    cols[1].markdown("**How to verify**")
-                    for item in verification:
-                        cols[1].write(f"- {item}")
-
-        st.markdown("**Questions for you**")
-        for question in analysis.get("question_for_user", []):
-            st.write(f"- {question}")
-
-        st.markdown("**Additional data needed**")
-        for item in analysis.get("additional_data_needed", []):
-            with st.container(border=True):
-                st.markdown(f"**{item.get('data', '-')}**")
-                st.write(f"이유: {item.get('reason', '-')}")
-                st.write(f"확보 방법: {item.get('how', '-')}")
+def _bind_overview_data(overview: Dict[str, Any]):
+    st.session_state["overview_fetched"] = True
+    data["artifact_id"] = overview.get("artifact_id")
+    data["artifact_type"] = overview.get("artifact_type")
+    data["package_id"] = overview.get("package_id")
+    data["message_guid"] = overview.get("message_guid")
+    data["log_start"] = overview.get("log_start")
+    data["log_end"] = overview.get("log_end")
+    data["log"] = overview.get("log")
+    data["origin_log"] = overview.get("origin_log")
+    data["status_code"] = overview.get("status_code")
+    data["exception"] = overview.get("exception")
 
 
-def render_solutions(solution: Dict[str, Any]):
-    if not solution:
-        return
-    with st.container(border=True):
-        st.subheader("Solutions")
-        solutions: List[Dict[str, Any]] = solution.get("solutions") or []
-        if not solutions:
-            st.info("제안된 해결책이 없습니다.")
-            return
-        for idx, plan in enumerate(solutions, start=1):
-            with st.container(border=True):
-                st.markdown(f"**{idx}. {plan.get('fix_plan', '-')}**")
-                check_list = plan.get("check_list") or []
-                for checklist in check_list:
-                    st.markdown(f"- **{checklist.get('target', '-')}**")
-                    for point in checklist.get("check_points") or []:
-                        st.write(f"  • {point}")
-                    if checklist.get("expected"):
-                        st.caption(f"  기대 결과: {checklist['expected']}")
+def _bind_analysis_data(analysis: Dict[str, Any]):
+    st.session_state["analysis_fetched"] = True
+    data["analysis"] = analysis
 
-                if plan.get("prove_senario"):
-                    st.markdown("**검증 시나리오**")
-                    st.write(plan["prove_senario"])
 
-                if plan.get("prevention"):
-                    st.markdown("**예방 가이드**")
-                    st.write(plan["prevention"])
+def _bind_solution_data(solution: Dict[str, Any]):
+    st.session_state["solution_fetched"] = True
+    data["solution"] = solution
 
-                extra_data = plan.get("additional_data_needed") or []
-                if extra_data:
-                    st.markdown("**추가 필요 데이터**")
-                    for item in extra_data:
-                        st.write(
-                            f"- {item.get('data', '-')}: {item.get('reason', '-')}")
-                        st.caption(f"  확보 방법: {item.get('how', '-')}")
+
+def _bind_resolve_with_analysis_data(full_data: Dict[str, Any]):
+    st.session_state["analysis_and_resolve"] = True
+    _bind_overview_data(full_data)
+    data["analysis"] = full_data.get("analysis")
+    data["solution"] = full_data.get("solution")
 
 
 def render_data_fetch():
-    fetch_cols = st.columns([3, 1])
-    message_guid = fetch_cols[0].text_input(label="Message Guid",
-                                            value=st.session_state.get(
-                                                "message_guid"),
-                                            placeholder="예) INTEGRA_SCOPE_TEST")
+    fetch_cols = st.columns([3, 1, 1])
+    st.session_state["message_guid"] = fetch_cols[0].text_input(
+        label="Message Guid",
+        value=st.session_state.get(
+            "message_guid"),
+        placeholder="예) INTEGRA_SCOPE_TEST")
     fetch_cols[1].container(height=10, border=False)
     fetch_clicked = fetch_cols[1].button("Analyze & Solution", type="primary",
                                          use_container_width=True)
+    fetch_cols[2].container(height=10, border=False)
+    if fetch_cols[2].button("Clear", type="secondary",
+                            use_container_width=True):
+        st.session_state["data"] = {}
+        _reset_analysis_state()
+        st.rerun()
 
-    return message_guid, fetch_clicked
+    if fetch_clicked:
+        with st.spinner("분석 결과를 불러오는중..."):
+            _data, _error = _fetch_resolve_with_analysis(message_guid.strip())
+        if _data:
+            _bind_resolve_with_analysis_data(_data)
+            st.success("오류 분석에 성공했습니다")
+        else:
+            st.error(f"오류 분석 실패: {_error}")
+
+
+def render_overview():
+    def _showable():
+        return st.session_state["overview_fetched"]
+
+    if _showable():
+        ArtifactContext(data).render_component()
+        return
+
+    if _current_step() == "all" or (
+            _current_step() == "overview" and st.button("Fetch Error Overview",
+                                                        width="stretch")):
+        with st.spinner("오류 정보를 불러오는 중"):
+            _data, _error = _fetch_error_log(message_guid_=message_guid)
+        if _data:
+            _bind_overview_data(_data)
+            st.success("오류 정보 조회에 성공했습니다")
+            ArtifactContext(data).render_component()
+        else:
+            st.error(f"오류 정보 조회 실패: {_error}")
+
+
+def render_analysis():
+    def _showable():
+        return st.session_state["analysis_fetched"]
+
+    if _showable():
+        AnalysisContext(data.get("analysis")).render_component()
+        return
+
+    if _current_step() == "all" or (_current_step() == "analysis" and st.button(
+            "Request Error Analysis",
+            width="stretch")):
+        with st.spinner("오류 분석하는 중"):
+            _data, _error = _fetch_analysis(message_guid_=message_guid,
+                                            data_=data)
+        if _data:
+            analysis = _data.get("analysis")
+            _bind_analysis_data(analysis)
+            st.success("오류 분석에 성공했습니다")
+            AnalysisContext(analysis).render_component()
+        else:
+            st.error(f"오류 분석 실패: {_error}")
+
+
+def render_solutions():
+    def _showable():
+        return st.session_state["solution_fetched"]
+
+    if _showable():
+        SolutionContext(data.get("solution")).render_component()
+        return
+
+    if _current_step() == "all" or (_current_step() == "solution" and st.button(
+            "Request Error Solution",
+            width="stretch")):
+        with st.spinner("오류 해결책 도출하는 중"):
+            _data, _error = _fetch_solution(message_guid_=message_guid,
+                                            data_=data)
+        if _data:
+            solution = _data.get("solution")
+            _bind_solution_data(solution)
+            st.success("오류 해결책 도출에 성공했습니다")
+            SolutionContext(solution).render_component()
+        else:
+            st.error(f"오류 해결책 도출 실패: {_error}")
 
 
 st.title("Error Analysis")
@@ -231,24 +290,17 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-payload: Dict[str, Any] = {}
-message_guid, fetch_clicked = render_data_fetch()
-
-if fetch_clicked:
-    with st.spinner("분석 결과를 불러오는중..."):
-        data, error = _fetch_resolve_with_analysis(message_guid.strip())
-    if data:
-        payload = data
-        st.success("오류 분석에 성공했습니다")
-    else:
-        st.error(f"오류 분석 실패: {error}")
+_init_session_state()
+data = st.session_state["data"]
+message_guid = st.session_state["message_guid"]
+render_data_fetch()
 
 st.divider()
 
-render_overview(payload, message_guid)
-render_analysis(payload.get("analysis") or {})
-render_solutions(payload.get("solution") or {})
+render_overview()
+render_analysis()
+render_solutions()
 
-if payload.get("solution"):
+if data.get("solution"):
     with st.expander("Raw payload 보기"):
-        st.json(payload)
+        st.json(data)
