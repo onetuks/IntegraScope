@@ -10,6 +10,7 @@ from app.server.lang_chain import AnalysisModel
 from app.server.lang_chain.chain_runner import LangChainClient, \
     get_langchain_client, AgentType
 from app.server.sap.log.error_log import ErrorLogService
+from app.server.utils.logger import logger
 
 
 class ActionType(Enum):
@@ -79,19 +80,28 @@ class LangGraphClient:
         return action_type_.value
 
     def _print_state(self, state: GraphState) -> GraphState:
-        print("action_type: ", state.get("action_type"))
-        print("artifact_id: ", state.get("artifact_id"))
-        print("artifact_type: ", state.get("artifact_type"))
-        print("package_id: ", state.get("package_id"))
-        print("message_guid: ", state.get("message_guid"))
-        print("log_start: ", state.get("log_start"))
-        print("log_end: ", state.get("log_end"))
-        print("log: ", state.get("log"))
-        print("origin_log: ", state.get("origin_log"))
-        print("status_code: ", state.get("status_code"))
-        print("exception: ", state.get("exception"))
-        print("analysis: ", state.get("analysis"))
-        print("solution: ", state.get("solution"))
+        log_value = state.get("log") or ""
+        origin_log_value = state.get("origin_log") or ""
+        exception_value = state.get("exception") or ""
+        logger.debug(
+            "LangGraph state snapshot",
+            extra={
+                "action_type": state.get("action_type"),
+                "artifact_id": state.get("artifact_id"),
+                "artifact_type": state.get("artifact_type"),
+                "package_id": state.get("package_id"),
+                "message_guid": state.get("message_guid"),
+                "log_start": state.get("log_start"),
+                "log_end": state.get("log_end"),
+                "status_code": state.get("status_code"),
+                "exception_present": bool(exception_value),
+                "exception_length": len(exception_value),
+                "analysis_present": state.get("analysis") is not None,
+                "solution_present": state.get("solution") is not None,
+                "log_length": len(log_value),
+                "origin_log_length": len(origin_log_value),
+            },
+        )
         return state
 
     def _error_log(self, state: GraphState) -> GraphState:

@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app.server.sap.oauth2 import OAuth2Client
 from app.server.utils.config import get_config
 from app.server.utils.datetime import ms_to_tz, to_gmt_0, to_gmt_9
+from app.server.utils.http import request_json
 
 
 class TestedMplDto(BaseModel):
@@ -30,11 +31,10 @@ def _build_filter(log_start: str, log_end: str) -> str:
 
 
 class TestedMplClient:
-    _URL = f"{get_config().sap_is_base_url}/MessageProcessingLogs"
-
     def __init__(self, session: requests.Session | None = None):
         self._session = session or requests.Session()
         self._oauth2_client = OAuth2Client(self._session)
+        self._base_url = f"{get_config().sap_is_base_url}/MessageProcessingLogs"
 
     def get_tested_artifacts(self,
                              artifact_id: str,
@@ -52,19 +52,23 @@ class TestedMplClient:
 
         datetime_format = "%Y-%m-%dT%H:%M:%S"
 
-        response = self._session.get(
-            url=f"{self._URL}?$filter=" +
-                f"LogStart gt datetime'{gmt_log_start.strftime(datetime_format)}'" +
-                f" and LogEnd lt datetime'{gmt_log_end.strftime(datetime_format)}'" +
-                (f" and Status eq '{status}'" if status is not None and status != 'ALL' else "") +
-                (f" and IntegrationFlowName eq '{artifact_id}'" if artifact_id is not None else ""),
+        payload = request_json(
+            self._session,
+            "GET",
+            f"{self._base_url}?$filter="
+            f"LogStart gt datetime'{gmt_log_start.strftime(datetime_format)}'"
+            f" and LogEnd lt datetime'{gmt_log_end.strftime(datetime_format)}'"
+            + (f" and Status eq '{status}'"
+               if status is not None and status != "ALL" else "")
+            + (f" and IntegrationFlowName eq '{artifact_id}'"
+               if artifact_id is not None else ""),
             headers={
-                'Accept': 'application/json',
-                'Authorization': f"Bearer {self._oauth2_client.get_access_token()}"
-            })
-
-        json = response.json()
-        artifacts = json["d"]["results"][:min(20, len(json["d"]["results"]))]
+                "Accept": "application/json",
+                "Authorization": f"Bearer {self._oauth2_client.get_access_token()}",
+            },
+        )
+        results = payload["d"]["results"]
+        artifacts = results[:min(20, len(results))]
 
         tested_artifacts = list()
         for artifact in artifacts:

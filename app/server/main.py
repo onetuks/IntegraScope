@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 
 from app.server import API_NAME, API_VERSION
+from app.server.exception.exception_handler import register_exception_handlers
 from app.server.lang_chain import AnalysisModel, SolutionsModel
 from app.server.lang_graph.graph_runner import LangGraphClient, \
     get_langgraph_client, ActionType
@@ -26,6 +27,7 @@ def create_app() -> FastAPI:
         allow_methods=allowed_methods(),
         allow_headers=allowed_headers(),
     )
+    register_exception_handlers(_app)
 
     @_app.on_event("startup")
     async def on_startup():
@@ -204,11 +206,15 @@ class TestedResponse(BaseModel):
 
 @app.get("/api/tested", response_model=TestedResponse)
 async def tested(
-        artifact_id: str = None,
-        log_start: datetime = datetime.now() - timedelta(hours=2),
-        log_end: datetime = datetime.now(),
+        artifact_id: Optional[str] = None,
+        log_start: Optional[datetime] = None,
+        log_end: Optional[datetime] = None,
         status: str = "ALL"
 ):
+    if log_start is None:
+        log_start = datetime.now() - timedelta(hours=2)
+    if log_end is None:
+        log_end = datetime.now()
     artifacts_ = TestedMplClient().get_tested_artifacts(artifact_id,
                                                         log_start,
                                                         log_end,

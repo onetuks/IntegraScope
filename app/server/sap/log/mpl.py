@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from app.server.utils.config import get_config
 from app.server.utils.datetime import ms_to_tz
+from app.server.utils.http import request_json
 
 
 class MplDto(BaseModel):
@@ -20,11 +21,12 @@ class MplDto(BaseModel):
 class MplApiClient:
     """SAP IS Message Processing Log API Request Client"""
 
-    _URL = (get_config().sap_is_base_url +
-            "/MessageProcessingLogs?" + "$filter=MessageGuid eq ")
-
     def __init__(self, session: requests.Session | None = None):
         self._session = session or requests.Session()
+        self._base_url = (
+            f"{get_config().sap_is_base_url}/MessageProcessingLogs?"
+            "$filter=MessageGuid eq "
+        )
 
     def get_mpl(self,
                 message_guid: str,
@@ -32,17 +34,16 @@ class MplApiClient:
         """
         Fetch Message Processing Log by Integration Flow name and return DTO.
         """
-        response = self._session.get(
-            url=f"{self._URL}'{message_guid}'",
+        payload = request_json(
+            self._session,
+            "GET",
+            f"{self._base_url}'{message_guid}'",
             headers={
                 "Accept": "application/json",
-                "Authorization": f"Bearer {token}"
+                "Authorization": f"Bearer {token}",
             },
         )
-        response.raise_for_status()
-
-        json = response.json()
-        target = json["d"]["results"]
+        target = payload["d"]["results"]
 
         if len(target) == 0:
             raise HTTPException(status_code=204, detail="No Message Processing Log")

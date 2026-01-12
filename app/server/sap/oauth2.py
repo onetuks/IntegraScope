@@ -6,6 +6,7 @@ from typing import Optional
 import requests
 
 from app.server.utils.config import get_config
+from app.server.utils.http import request_json
 from app.server.utils.logger import logger
 
 
@@ -51,15 +52,14 @@ class OAuth2Client:
     payload = {"grant_type": "client_credentials"}
     headers = {"Accept": "application/json"}
 
-    response = self._session.post(
+    data = request_json(
+        self._session,
+        "POST",
         self._token_url,
         data=payload,
         headers=headers,
         auth=(self._client_id, self._client_secret),
     )
-    response.raise_for_status()
-
-    data = response.json()
     token = data.get("access_token")
     token_type = data.get("token_type", "Bearer")
     expires_in = data.get("expires_in", 0)

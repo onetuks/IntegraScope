@@ -43,16 +43,16 @@ class ErrorLogService:
         self._mpl_api_client = MplApiClient(session=self._session)
         self._error_info_api_client = ErrorInfoApiClient(session=self._session)
         self._error_log_regulation = ErrorLogRegulationComponent()
-        self._token = self._oauth2_client.get_access_token()
 
     def request_error_data(self, message_guid: str) -> ErrorData:
         try:
+            token = self._oauth2_client.get_access_token()
             mpl_dto = self._mpl_api_client.get_mpl(message_guid=message_guid,
-                                                   token=self._token)
+                                                   token=token)
             raw_log = self._error_info_api_client.get_err_log(
-                message_guid=mpl_dto.message_guid, token=self._token)
+                message_guid=mpl_dto.message_guid, token=token)
             log_dto = self._error_log_regulation.normalize_log(raw_log=raw_log)
-        except ValueError as e:
+        except ValueError:
             raise HTTPException(status_code=204, detail="Error Log is gone")
 
         return ErrorData(

@@ -1,6 +1,6 @@
 from enum import Enum
 
-from charset_normalizer.md import lru_cache
+from functools import lru_cache
 from jinja2 import Template
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
