@@ -12,11 +12,14 @@ def fetch_tested(
         artifact_id: Optional[str] = None
 ) -> Tuple[Optional[List[Dict[str, Any]]], Optional[str]]:
     try:
-        response = get(f"/api/tested" +
-                       f"?status={status}" +
-                       (f"&artifact_id={artifact_id}" if artifact_id else "") +
-                       f"&log_start={log_start.isoformat()}" +
-                       f"&log_end={log_end.isoformat()}")
+        params: Dict[str, Any] = {
+            "status": status,
+            "log_start": log_start.isoformat(),
+            "log_end": log_end.isoformat(),
+        }
+        if artifact_id:
+            params["artifact_id"] = artifact_id
+        response = get("/api/tested", params=params)
         data = response.json()
         return data.get("tested_artifacts", []), None
     except Exception as exc:

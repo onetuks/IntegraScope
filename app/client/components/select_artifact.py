@@ -8,8 +8,7 @@ from app.client.api.api_client import get
 
 def _fetch_artifact_list(package_id: str) -> List[str]:
     try:
-        response = get(f"/api/artifacts?package_id={package_id}")
-        response.raise_for_status()
+        response = get("/api/artifacts", params={"package_id": package_id})
         return response.json()
     except Exception as exc:
         return []

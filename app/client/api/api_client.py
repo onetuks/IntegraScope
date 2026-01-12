@@ -1,30 +1,78 @@
+from __future__ import annotations
+
+import logging
+import os
 from typing import Optional
 
 import requests
 from requests import Response
 
-API_BASE_URL = "http://localhost:8000"
+logger = logging.getLogger("client.api")
+
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000").rstrip("/")
 
 
-def get(uri: Optional[str] = None) -> Response:
-    response = requests.get(API_BASE_URL + uri)
-    response.raise_for_status()
-    return response
+def _get_default_timeout() -> Optional[float]:
+    value = os.getenv("API_TIMEOUT_SECONDS")
+    if not value:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
 
 
-def post(uri: Optional[str] = None, body: Optional[dict] = None, timeout: Optional[int] = None) -> Response:
-    response = requests.post(API_BASE_URL + uri, json=body, timeout=timeout)
-    response.raise_for_status()
-    return response
+DEFAULT_TIMEOUT_SECONDS = _get_default_timeout()
+_SESSION = requests.Session()
 
 
-def put(uri: Optional[str] = None, body: Optional[dict] = None) -> Response:
-    response = requests.put(API_BASE_URL + uri, json=body)
-    response.raise_for_status()
-    return response
+def _build_url(uri: Optional[str]) -> str:
+    if not uri:
+        return API_BASE_URL
+    if uri.startswith(("http://", "https://")):
+        return uri
+    if not uri.startswith("/"):
+        uri = f"/{uri}"
+    return f"{API_BASE_URL}{uri}"
 
 
-def delete(uri: Optional[str] = None):
-    response = requests.delete(API_BASE_URL + uri)
-    response.raise_for_status()
-    return response
+def _request(method: str, uri: Optional[str], **kwargs) -> Response:
+    timeout = kwargs.pop("timeout", DEFAULT_TIMEOUT_SECONDS)
+    if timeout is not None:
+        kwargs["timeout"] = timeout
+    url = _build_url(uri)
+    try:
+        response = _SESSION.request(method, url, **kwargs)
+        response.raise_for_status()
+        return response
+    except requests.RequestException:
+        logger.exception("API request failed", extra={"method": method, "url": url})
+        raise
+
+
+def get(
+    uri: Optional[str] = None,
+    params: Optional[dict] = None,
+    timeout: Optional[float] = None,
+) -> Response:
+    return _request("GET", uri, params=params, timeout=timeout)
+
+
+def post(
+    uri: Optional[str] = None,
+    body: Optional[dict] = None,
+    timeout: Optional[float] = None,
+) -> Response:
+    return _request("POST", uri, json=body, timeout=timeout)
+
+
+def put(
+    uri: Optional[str] = None,
+    body: Optional[dict] = None,
+    timeout: Optional[float] = None,
+) -> Response:
+    return _request("PUT", uri, json=body, timeout=timeout)
+
+
+def delete(uri: Optional[str] = None, timeout: Optional[float] = None) -> Response:
+    return _request("DELETE", uri, timeout=timeout)

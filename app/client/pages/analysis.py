@@ -98,7 +98,7 @@ def _fetch_analysis(message_guid_: str, data_: Dict[str, Any]) -> Tuple[
 def _fetch_solution(message_guid_: str, data_: Dict[str, Any]) -> Tuple[
     Optional[Dict[str, Any]], Optional[str]
 ]:
-    if not message_guid:
+    if not message_guid_:
         return None, "Artifact ID가 필요합니다."
     try:
         response: Response = post(

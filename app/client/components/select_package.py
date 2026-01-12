@@ -10,7 +10,6 @@ from app.client.components.select_artifact import load_artifacts, reset_results
 def _fetch_package_list() -> List[str]:
     try:
         response = get("/api/packages")
-        response.raise_for_status()
         return response.json()
     except Exception as exc:
         return []

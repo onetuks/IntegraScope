@@ -49,9 +49,15 @@ class TestedArtifact:
         cols[2].badge(self._item.get("status", "-"), color=status_color)
         cols[2].caption(format_duration(self._item.get("log_start"),
                                         self._item.get("log_end")))
-        dt = datetime.strptime(self._item.get("log_start"),
-                               "%Y-%m-%dT%H:%M:%S.%fZ")
-        cols[2].caption(datetime.strftime(dt, "%Y-%m-%d %H:%M:%S"))
+        log_start = self._item.get("log_start")
+        if log_start:
+            try:
+                dt = datetime.strptime(log_start, "%Y-%m-%dT%H:%M:%S.%fZ")
+                cols[2].caption(datetime.strftime(dt, "%Y-%m-%d %H:%M:%S"))
+            except ValueError:
+                cols[2].caption("-")
+        else:
+            cols[2].caption("-")
         if cols[2].button(
                 label="Analyze",
                 use_container_width=True,
