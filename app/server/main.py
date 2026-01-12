@@ -60,7 +60,7 @@ async def api_info():
     }
 
 
-class AnalysisRequest(BaseModel):
+class ErrorLogRequest(BaseModel):
     message_guid: str = Field(..., description="message guid")
 
 
@@ -77,9 +77,9 @@ class ErrorLogResponse(BaseModel):
     exception: str
 
 
-@app.post("/api/error-log")
+@app.post("/api/error-log", response_model=ErrorLogResponse)
 async def error_log(
-        request: AnalysisRequest,
+        request: ErrorLogRequest,
         graph_runner: LangGraphClient = Depends(get_langgraph_client)):
     state = graph_runner.run(message_guid=request.message_guid,
                              action_type=ActionType.ERROR_LOG)
@@ -94,6 +94,69 @@ async def error_log(
         origin_log=state.get("origin_log"),
         status_code=state.get("status_code"),
         exception=state.get("exception")
+    )
+
+
+class ErrorAnalysisRequest(BaseModel):
+    artifact_id: str
+    artifact_type: str
+    package_id: str
+    message_guid: str
+    log_start: str
+    log_end: str
+    log: str
+    origin_log: str
+    status_code: Optional[int]
+    exception: str
+
+
+class ErrorAnalysisResponse(BaseModel):
+    message_guid: str
+    analysis: AnalysisModel
+
+
+@app.post("/api/analysis", response_model=ErrorAnalysisResponse)
+async def analysis(
+        request: ErrorAnalysisRequest,
+        graph_runner: LangGraphClient = Depends(get_langgraph_client)
+):
+    state = graph_runner.run(message_guid=request.message_guid,
+                             action_type=ActionType.ANALYSIS)
+    return ErrorAnalysisResponse(
+        message_guid=state.get("message_guid"),
+        analysis=state.get("analysis"),
+    )
+
+
+class ErrorSolutionRequest(BaseModel):
+    artifact_id: str
+    artifact_type: str
+    package_id: str
+    message_guid: str
+    log_start: str
+    log_end: str
+    log: str
+    origin_log: str
+    status_code: Optional[int]
+    exception: str
+    analysis: AnalysisModel
+
+
+class ErrorSolutionResponse(BaseModel):
+    message_guid: str
+    solution: SolutionsModel
+
+
+@app.post("/api/solutions", response_model=ErrorSolutionResponse)
+async def solution(
+        request: ErrorSolutionRequest,
+        graph_runner: LangGraphClient = Depends(get_langgraph_client)
+):
+    state = graph_runner.run(message_guid=request.message_guid,
+                             action_type=ActionType.SOLUTION)
+    return ErrorSolutionResponse(
+        message_guid=state.get("message_guid"),
+        solution=state.get("solution")
     )
 
 
@@ -115,7 +178,7 @@ class ResolveWithAnalysisResponse(BaseModel):
 @app.post("/api/resolve-with-analysis",
           response_model=ResolveWithAnalysisResponse)
 async def resolve_with_analysis(
-        request: AnalysisRequest,
+        request: ErrorLogRequest,
         graph_runner: LangGraphClient = Depends(get_langgraph_client)):
     state = graph_runner.run(message_guid=request.message_guid,
                              action_type=ActionType.RESOLVE_WITH_ANALYSIS)

@@ -3,7 +3,7 @@ from typing import Any
 
 import streamlit as st
 
-from app.client.utils.utils import format_duration
+from app.client.utils import format_duration
 
 
 class TestedArtifact:
