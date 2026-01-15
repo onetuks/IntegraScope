@@ -188,6 +188,17 @@ class ChromaErrorLogStore:
             metadatas=[metadata],
         )
 
+    def peek_cases(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Retrieve the most recent cases added to the collection.
+        Note: ChromaDB's peek returns the first N items, which might not be strictly 'most recent'
+        unless insertion order is preserved or we sort by metadata.
+        Here we just return what peek gives us, which is a sample of the data.
+        """
+        result = self._collection.peek(limit=limit)
+        metadatas = result.get("metadatas") or []
+        return metadatas
+
 
 def _get_existing_metadata(collection, case_id: str) -> Dict[str, Any]:
     try:
