@@ -1,17 +1,9 @@
-from datetime import datetime, timedelta
-from typing import List, Optional
-
-from fastapi import FastAPI, Depends
-from pydantic import BaseModel, Field
+from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from app.server import API_NAME, API_VERSION
+from app.server.api.routes import error_log, meta, objects, tested
 from app.server.exception.exception_handler import register_exception_handlers
-from app.server.lang_chain import AnalysisModel, SolutionsModel
-from app.server.lang_graph.graph_runner import LangGraphClient, \
-    get_langgraph_client, ActionType
-from app.server.sap.object.object_search import ObjectSearch
-from app.server.sap.tested.mpl import TestedMplDto, TestedMplClient
 from app.server.security.cors import allowed_headers, allowed_methods, \
     allowed_origins
 from app.server.utils.logger import logger
@@ -29,6 +21,11 @@ def create_app() -> FastAPI:
     )
     register_exception_handlers(_app)
 
+    _app.include_router(meta.router)
+    _app.include_router(error_log.router)
+    _app.include_router(tested.router)
+    _app.include_router(objects.router)
+
     @_app.on_event("startup")
     async def on_startup():
         logger.info("Starting API", extra={"version": API_VERSION})
@@ -41,193 +38,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-
-
-@app.get("/health")
-async def health():
-    return {
-        "status": "ok",
-        "version": API_VERSION,
-    }
-
-
-@app.get("/api/info")
-async def api_info():
-    return {
-        "name": API_NAME,
-        "version": API_VERSION,
-        "docs_url": "/docs",
-        "openapi_url": app.openapi_url,
-        "status": "ok",
-    }
-
-
-class ErrorLogRequest(BaseModel):
-    message_guid: str = Field(..., description="message guid")
-
-
-class ErrorLogResponse(BaseModel):
-    artifact_id: str
-    artifact_type: str
-    package_id: str
-    message_guid: str
-    log_start: str
-    log_end: str
-    log: str
-    origin_log: str
-    status_code: Optional[int]
-    exception: str
-
-
-@app.post("/api/error-log", response_model=ErrorLogResponse)
-async def error_log(
-        request: ErrorLogRequest,
-        graph_runner: LangGraphClient = Depends(get_langgraph_client)):
-    state = graph_runner.run(message_guid=request.message_guid,
-                             action_type=ActionType.ERROR_LOG)
-    return ErrorLogResponse(
-        artifact_id=state.get("artifact_id"),
-        artifact_type=state.get("artifact_type"),
-        package_id=state.get("package_id"),
-        message_guid=state.get("message_guid"),
-        log_start=state.get("log_start"),
-        log_end=state.get("log_end"),
-        log=state.get("log"),
-        origin_log=state.get("origin_log"),
-        status_code=state.get("status_code"),
-        exception=state.get("exception")
-    )
-
-
-class ErrorAnalysisRequest(BaseModel):
-    artifact_id: str
-    artifact_type: str
-    package_id: str
-    message_guid: str
-    log_start: str
-    log_end: str
-    log: str
-    origin_log: str
-    status_code: Optional[int]
-    exception: str
-
-
-class ErrorAnalysisResponse(BaseModel):
-    message_guid: str
-    analysis: AnalysisModel
-
-
-@app.post("/api/analysis", response_model=ErrorAnalysisResponse)
-async def analysis(
-        request: ErrorAnalysisRequest,
-        graph_runner: LangGraphClient = Depends(get_langgraph_client)
-):
-    state = graph_runner.run(message_guid=request.message_guid,
-                             action_type=ActionType.ANALYSIS)
-    return ErrorAnalysisResponse(
-        message_guid=state.get("message_guid"),
-        analysis=state.get("analysis"),
-    )
-
-
-class ErrorSolutionRequest(BaseModel):
-    artifact_id: str
-    artifact_type: str
-    package_id: str
-    message_guid: str
-    log_start: str
-    log_end: str
-    log: str
-    origin_log: str
-    status_code: Optional[int]
-    exception: str
-    analysis: AnalysisModel
-
-
-class ErrorSolutionResponse(BaseModel):
-    message_guid: str
-    solution: SolutionsModel
-
-
-@app.post("/api/solutions", response_model=ErrorSolutionResponse)
-async def solution(
-        request: ErrorSolutionRequest,
-        graph_runner: LangGraphClient = Depends(get_langgraph_client)
-):
-    state = graph_runner.run(message_guid=request.message_guid,
-                             action_type=ActionType.SOLUTION)
-    return ErrorSolutionResponse(
-        message_guid=state.get("message_guid"),
-        solution=state.get("solution")
-    )
-
-
-class ResolveWithAnalysisResponse(BaseModel):
-    artifact_id: str
-    artifact_type: str
-    package_id: str
-    message_guid: str
-    log_start: str
-    log_end: str
-    log: str
-    origin_log: str
-    status_code: Optional[int]
-    exception: str
-    analysis: AnalysisModel
-    solution: SolutionsModel
-
-
-@app.post("/api/resolve-with-analysis",
-          response_model=ResolveWithAnalysisResponse)
-async def resolve_with_analysis(
-        request: ErrorLogRequest,
-        graph_runner: LangGraphClient = Depends(get_langgraph_client)):
-    state = graph_runner.run(message_guid=request.message_guid,
-                             action_type=ActionType.RESOLVE_WITH_ANALYSIS)
-    return ResolveWithAnalysisResponse(
-        artifact_id=state.get("artifact_id"),
-        artifact_type=state.get("artifact_type"),
-        package_id=state.get("package_id"),
-        message_guid=state.get("message_guid"),
-        log_start=state.get("log_start"),
-        log_end=state.get("log_end"),
-        log=state.get("log"),
-        origin_log=state.get("origin_log"),
-        status_code=state.get("status_code"),
-        exception=state.get("exception"),
-        analysis=state.get("analysis"),
-        solution=state.get("solution")
-    )
-
-
-class TestedResponse(BaseModel):
-    tested_artifacts: List[TestedMplDto]
-
-
-@app.get("/api/tested", response_model=TestedResponse)
-async def tested(
-        artifact_id: Optional[str] = None,
-        log_start: Optional[datetime] = None,
-        log_end: Optional[datetime] = None,
-        status: str = "ALL"
-):
-    if log_start is None:
-        log_start = datetime.now() - timedelta(hours=2)
-    if log_end is None:
-        log_end = datetime.now()
-    artifacts_ = TestedMplClient().get_tested_artifacts(artifact_id,
-                                                        log_start,
-                                                        log_end,
-                                                        status)
-    return TestedResponse(tested_artifacts=artifacts_)
-
-
-@app.get("/api/packages")
-async def packages():
-    packages_ = ObjectSearch().get_package_list()
-    return packages_
-
-
-@app.get("/api/artifacts")
-async def artifacts(package_id: str):
-    return ObjectSearch().get_artifact_list(package_id)
