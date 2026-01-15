@@ -5,7 +5,6 @@ from typing import Optional
 from pydantic import Field, FieldValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 BASE_DIR = Path(__file__).resolve().parents[3]
 ENV_PATH = BASE_DIR / ".env"
 
@@ -22,7 +21,10 @@ class Config(BaseSettings):
     temperature: float = Field(default=0.2)
 
     chroma_host: Optional[str] = Field(default="127.0.0.1")
-    chroma_port: int = Field(default=8000)
+    chroma_port: int = Field(default=8001)
+    chroma_collection: str = Field(default="error_log_cases")
+    chroma_embedding_model: str = Field(default="all-MiniLM-L6-v2")
+    chroma_similarity_threshold: Optional[float] = Field(default=0.25)
 
     log_level: str = Field(default="INFO")
 
@@ -40,6 +42,8 @@ class Config(BaseSettings):
         "google_api_key",
         "gemini_model",
         "chroma_host",
+        "chroma_collection",
+        "chroma_embedding_model",
     )
     @classmethod
     def required_non_empty(cls, value: str, info: FieldValidationInfo):
@@ -52,6 +56,15 @@ class Config(BaseSettings):
     def valid_port(cls, value: int) -> int:
         if value < 0:
             raise ValueError("chroma_port must be a positive integer")
+        return value
+
+    @field_validator("chroma_similarity_threshold")
+    @classmethod
+    def valid_similarity_threshold(cls, value: Optional[float]) -> Optional[float]:
+        if value is None:
+            return value
+        if value < 0 or value > 1:
+            raise ValueError("chroma_similarity_threshold must be between 0 and 1")
         return value
 
     @field_validator("log_level")
