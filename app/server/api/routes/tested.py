@@ -19,6 +19,8 @@ async def tested(
     log_start: Optional[datetime] = None,
     log_end: Optional[datetime] = None,
     status: str = "ALL",
+    skip: int = 0,
+    top: int = 20,
 ):
     if log_start is None:
         log_start = datetime.now() - timedelta(hours=2)
@@ -29,5 +31,7 @@ async def tested(
         log_start,
         log_end,
         status,
+        skip,
+        top,
     )
     return TestedResponse(tested_artifacts=artifacts_)

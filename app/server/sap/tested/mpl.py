@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from urllib.parse import quote
 
 import requests
@@ -40,38 +40,47 @@ class TestedMplClient:
                              artifact_id: str,
                              log_start: datetime,
                              log_end: datetime,
-                             status: str) -> List[TestedMplDto]:
+                             status: str,
+                             skip: int = 0,
+                             top: int = 20) -> List[TestedMplDto]:
         """
         Fetch Message Processing Logs for period(LogStart ~ LogEnd)
         :param log_start: 로그 시작 시간
         :param log_end: 로그 종료 시간
         :param status: 테스트 상태
+        :param skip: 건너뛸 레코드 수 (Pagination)
+        :param top: 가져올 레코드 수 (Pagination)
         :return: TestedMplDto
         """
         gmt_log_start, gmt_log_end = to_gmt_0(log_start), to_gmt_0(log_end)
 
         datetime_format = "%Y-%m-%dT%H:%M:%S"
 
-        payload = request_json(
-            self._session,
-            "GET",
-            f"{self._base_url}?$filter="
-            f"LogStart gt datetime'{gmt_log_start.strftime(datetime_format)}'"
+        filter_query = (
+            f"$filter=LogStart gt datetime'{gmt_log_start.strftime(datetime_format)}'"
             f" and LogEnd lt datetime'{gmt_log_end.strftime(datetime_format)}'"
             + (f" and Status eq '{status}'"
                if status is not None and status != "ALL" else "")
             + (f" and IntegrationFlowName eq '{artifact_id}'"
-               if artifact_id is not None else ""),
+               if artifact_id is not None else "")
+        )
+        
+        # Add pagination and sorting
+        query_params = f"{filter_query}&$skip={skip}&$top={top}&$orderby=LogStart desc"
+
+        payload = request_json(
+            self._session,
+            "GET",
+            f"{self._base_url}?{query_params}",
             headers={
                 "Accept": "application/json",
                 "Authorization": f"Bearer {self._oauth2_client.get_access_token()}",
             },
         )
         results = payload["d"]["results"]
-        artifacts = results[:min(20, len(results))]
-
+        
         tested_artifacts = list()
-        for artifact in artifacts:
+        for artifact in results:
             tested_artifacts.append(
                 TestedMplDto(
                     artifact_id=artifact["IntegrationArtifact"]["Id"],
@@ -84,4 +93,4 @@ class TestedMplClient:
                     status=artifact["Status"],
                 )
             )
-        return sorted(tested_artifacts, key=lambda a: a.log_start, reverse=True)
+        return tested_artifacts
